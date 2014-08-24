@@ -1,0 +1,64 @@
+#!/usr/bin/expect
+set remote_server [lrange $argv 0 0]
+set timeout 10
+spawn ssh -M -p 9002 ***REMOVED***@$remote_server
+
+set fh [open "outside-in-fixed" r]
+#set lines [split [read $fh "\n"]]
+
+while 1 {
+  expect {
+    "no)?"      {send "yes\r"}
+    "denied" {
+                log_file expect_msg.log
+                send_log "Can't login to $remote_server. Check username and password\n";
+                exit 1
+             }
+    "telnet:" {
+                log_file expect_msg.log
+                send_log "Can't connect to $remote_server via SSH or Telnet. Something went definitely wrong\n";
+                exit 2
+              }
+    "failed" {
+                log_file expect_msg.log
+                send_log "Host $remote_server exists. Check ssh_hosts file\n";
+                exit 3
+             }
+    timeout {
+                log_file expect_msg.log
+                send_log "Timeout problem. Host $remote_server doesn't respond\n";
+                exit 4
+            }
+    "refused" {
+                log_file expect_msg.log
+                send_log "Host $remote_server refused to SSH. That is insecure.\n"
+                log_file
+                spawn telnet $remote_server
+              }
+    "sername:" {send "***REMOVED***\r"}
+    "assword:" {send -- "REDACTED\r"}
+    ">"        {send "enable\r"}
+    "#"        {break}
+  }
+}
+send "terminal pager 0\r"
+expect "#"
+send "configure terminal\r"
+expect "#"
+send "terminal width 200\r"
+expect "#"
+
+set send_slow {10 .005}
+
+log_file $remote_server
+#foreach read_line $lines{
+while {[gets $fh read_line] != -1} {
+	send -s "$read_line\r"
+	expect "#"
+}
+
+close $fh
+#send -s [cat outside-in-fixed]
+
+expect "#"
+send "exit\n"; exit 0
