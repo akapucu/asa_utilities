@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+
+import pexpect, sys
+from getpass import getpass
+
+port = 22
+hostname = '***REMOVED***'
+username = input("username (enter for ***REMOVED***): ")
+password = getpass()
+prompt = '#'
+
+if not username:
+	username = '***REMOVED***'
+
+# figure out what we're banning
+try:
+	ip = sys.argv[1]
+except:
+	ip = input("what IP would you like to ban? ")
+
+# create child process
+child = pexpect.spawn('ssh -M -p %d %s@%s' %(port, username, hostname))
+#outfile = open('outfile', 'w')
+#child.logfile = outfile
+child.logfile = open('outfile', 'wb')
+
+# auth to SSH
+child.expect('password: ')
+child.sendline(password)
+child.expect('>')
+
+# enable
+child.sendline('enable')
+child.expect('Password:')
+child.sendline(password)
+child.expect(prompt)
+
+# set up some environment stuff
+child.sendline('terminal pager 0')
+child.expect(prompt)
+child.sendline('configure terminal')
+child.expect(prompt)
+child.sendline('terminal width 200')
+child.expect(prompt)
+
+# ban some shit
+child.sendline('object-group network blacklisted_IPs')
+child.expect(prompt)
+
+child.sendline('network-object host ' + ip)
+child.expect(prompt)
