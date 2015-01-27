@@ -1,16 +1,28 @@
 #!/usr/bin/python3
 
-import pexpect, sys
+import os, sys
 from getpass import getpass
+import paramiko
+from paramikoe import SSHClientInteraction
 
+# initialize variables
 port = 22
-hostname = '***REMOVED***'
-username = input("username (enter for ***REMOVED***): ")
-password = getpass()
-prompt = '#'
+asa_address = '***REMOVED***'
+asa_username = input("username (enter for ***REMOVED***): ")
+asa_password = getpass()
+asa_timeout = 15
+asa_port = 22
+asaprompt = ".*# "
+ssh_known_hosts = "~/.ssh/known_hosts"
+debug=False
 
-if not username:
-	username = '***REMOVED***'
+# additional initialization
+ssh_known_hosts = os.path.expanduser(ssh_known_hosts)
+if not asa_username:
+	asa_username = '***REMOVED***'
+enable_password = asa_password
+if debug:
+	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
 
 # figure out what we're banning
 try:
@@ -19,33 +31,30 @@ except:
 	ip = input("what IP would you like to ban? ")
 
 # create child process
-child = pexpect.spawn('ssh -M -p %d %s@%s' %(port, username, hostname))
-#outfile = open('outfile', 'w')
-#child.logfile = outfile
-child.logfile = open('outfile', 'wb')
+client=paramiko.SSHClient()
+#child = pexpect.spawn('ssh -M -p %d %s@%s' %(port, username, hostname))
+client.load_host_keys(ssh_known_hosts)
+client.connect(asa_address, port=asa_port, username=asa_username, password=asa_password, timeout=asa_timeout, look_for_keys=False)
+interact=SSHClientInteraction(client, timeout=asa_timeout, display=debug)
 
-# auth to SSH
-child.expect('password: ')
-child.sendline(password)
-child.expect('>')
+#log in and set some environment stuff
+interact.expect(".*>.*")
+interact.send("en")
+interact.expect(".*Password:.*")
+interact.send(enable_password)
+interact.expect(asaprompt)
+interact.send("configure terminal")
+interact.expect(asaprompt)
+interact.send("terminal pager 0")
+interact.expect(asaprompt)
+interact.send("terminal width 200")
+interact.expect(asaprompt)
 
-# enable
-child.sendline('enable')
-child.expect('Password:')
-child.sendline(password)
-child.expect(prompt)
+# ban
+interact.send("object-group network blacklisted_IPs")
+interact.expect(asaprompt)
+interact.send("network-object host " + ip)
+interact.expect(asaprompt)
 
-# set up some environment stuff
-child.sendline('terminal pager 0')
-child.expect(prompt)
-child.sendline('configure terminal')
-child.expect(prompt)
-child.sendline('terminal width 200')
-child.expect(prompt)
-
-# ban some shit
-child.sendline('object-group network blacklisted_IPs')
-child.expect(prompt)
-
-child.sendline('network-object host ' + ip)
-child.expect(prompt)
+# close connection
+client.close()
