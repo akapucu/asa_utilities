@@ -30,7 +30,7 @@ def is_substring_of_obj_list(obj_name, matched_objects):
 RE_OBJECT_NETWORK = re.compile('^object network (\S+)$')
 RE_OBJECT_GROUP = re.compile('^object-group network (\S+)$')
 RE_HOST = re.compile('^ host\s(\S+)$')
-RE_SUBNET = re.compile('^ subnet\s ([\S ]+)$')
+RE_SUBNET = re.compile('^ subnet ([\S ]+)$')
 RE_NETWORK_OBJECT_HOST = re.compile('^ network-object host (\S+)$')
 RE_NETWORK_OBJECT_OBJECT = re.compile('^ network-object object (\S+)$')
 RE_BARE_ACL_HOST = re.compile('host ((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))')
@@ -49,7 +49,7 @@ else:
 if debug: print('finding network objects')
 net_objs = config.find_objects(RE_OBJECT_NETWORK)
 
-# match subnet(s) against hosts in network objects
+# match subnet(s) against network objects
 if debug: print('matching network objects with specified subnet')
 matched_objects = []
 for obj in net_objs:
@@ -63,9 +63,13 @@ for obj in net_objs:
 			ip_str = child.re_match(RE_SUBNET, default=None)
 
 		if ip_str:
-			# if we found an IP address, convert to IPv4Obj and check if it belongs to the subnet we want
+			# if we found an IP address, convert to IPv4Obj and check if it belongs 
+			# to the subnet we want, and vice-versa
 			addr = IPv4Obj(ip_str)
 			if addr in subnet:
+				matched_objects.append(obj)
+				break
+			elif subnet in addr:
 				matched_objects.append(obj)
 				break
 		# match any statically defined subnets
