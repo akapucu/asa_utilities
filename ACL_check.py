@@ -1,22 +1,64 @@
 #!/usr/bin/python3
 
-# ./ACL_check.py <config file> <subnet>
+# ./ACL_check.py -f <input_file> -s <subnet>
 # This script inputs a cisco config file and a subnet or IP address, and outputs any relevant
 # objects pertaining to access lists.
+# brf2010@med.cornell.edu
 
 from ciscoconfparse import CiscoConfParse, IOSCfgLine
 from ciscoconfparse.ccp_util import IPv4Obj
 import re
 import sys
 import pickle
+import argparse
 
-debug=False
-use_pickle = True
-pickle_file = "pickle"
 
-subnet = IPv4Obj(sys.argv[2])
-# subnet = IPv4Obj("143.104.88.0/24")
+# parse arguments and determine a course of action
+parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, 
+	description="Check for relevant ACLs in a cisco config",
+	epilog=
+"""Examples:\n\
+	Check an IP against a cisco config file: ACL_check.py -f config -s 1.2.3.4\n\
+	Generate a pickle file for faster lookups: ACL_check.py -f config -o pickle\n\
+	Check IP against pickle file: ACL_check.py -p pickle -s 1.2.3.4
+It is strongly advised to generate and use a pickle file to speed things up.""")
+parser.add_argument('-s', help="subnet/IP to check", dest="subnet")
+parser.add_argument('-f', help="input config file", dest="in_file")
+parser.add_argument('-p', help="input pickle file", dest="pickle_file")
+parser.add_argument('-o', help="output pickle file", dest="out_file")
+parser.add_argument('-d', help="debug", dest="debug", action="store_true")
+args = parser.parse_args()
 
+debug=args.debug
+
+if args.out_file and args.in_file:
+	print("Generating pickle file. This can take some time with very large files. Try getting some coffee.")
+	fh = open(args.out_file, 'wb')
+	config = CiscoConfParse(args.in_file)
+	pickle.dump(config, fh)
+	print("Done.")
+	sys.exit()
+
+elif args.subnet:
+	try:
+		subnet = IPv4Obj(args.subnet)
+	except:
+		print("Invalid subnet/IP")
+		if debug: print(args.subnet)
+		sys.exit()
+	if debug: print(subnet)
+	if args.pickle_file:
+		if debug: print("loading %s as pickle file" %(args.pickle_file))
+		config = pickle.load(open(args.pickle_file, 'rb'))
+	elif args.in_file:
+		if debug: print("loading %s as plaintext file" %(args.in_file))
+		config = CiscoConfParse(args.in_file)
+	else:
+		parser.error("One of -f or -p must be given with -s")
+		sys.exit()
+
+else:
+	parser.error("One of -s or -o must be given.")
 
 
 def is_substring_of_obj_list(obj_name, matched_objects):
@@ -25,6 +67,8 @@ def is_substring_of_obj_list(obj_name, matched_objects):
 		if obj_name in obj.text:
 			return True
 	return False
+
+
 
 # regular expressions used throughout
 RE_OBJECT_NETWORK = re.compile('^object network (\S+)$')
@@ -35,15 +79,6 @@ RE_NETWORK_OBJECT_HOST = re.compile('^ network-object host (\S+)$')
 RE_NETWORK_OBJECT_OBJECT = re.compile('^ network-object object (\S+)$')
 RE_BARE_ACL_HOST = re.compile('host ((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))')
 RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
-
-# parse config file
-if debug: print('parsing')
-#config = CiscoConfParse(sys.argv[1])
-if use_pickle:
-	if debug: print('loading pickle')
-	config = pickle.load(open(pickle_file, 'rb'))
-else:
-	config = CiscoConfParse(sys.argv[1])
 
 # get network objects
 if debug: print('finding network objects')
@@ -153,12 +188,12 @@ for obj in matched_objects:
 	for child in obj.children:
 		print(child.text)
 
-print("\n\nMatched object groups")
+print("\nMatched object groups")
 for obj in matched_groups:
 	print(obj.text)
 	for child in obj.children:
 		print(child.text)
 
-print("\n\nMatched ACLs")
+print("\nMatched ACLs")
 for line in ACL_matches:
 	print(line.text)
