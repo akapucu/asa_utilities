@@ -14,7 +14,7 @@ import argparse
 
 
 # parse arguments and determine a course of action
-parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, 
+parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
 	description="Check for relevant ACLs in a cisco config",
 	epilog=
 """Examples:\n\
@@ -73,7 +73,7 @@ class ASA_ACL():
 	""" This class is used for deciphering a Cisco Access
 	Control List line. It takes in a string. Properties can
 	be looked up with related functions"""
-	
+
 	acl_name = None
 	acl_type = None
 	acl_permission = None
@@ -121,8 +121,8 @@ class ASA_ACL():
 		# should be either permit or deny
 		self.acl_permission = acl[self.index]
 		self.index += 1
-		
-		# protocol processing 
+
+		# protocol processing
 		if acl[self.index] == "object":
 			self.acl_protocol = "defined by object"
 			self.acl_service_object = acl[self.index + 1]
@@ -140,12 +140,26 @@ class ASA_ACL():
 		elif acl[self.index] == "ip":
 			self.acl_protocol == "ip"
 			self.index += 1
+		elif acl[self.index] == "icmp":
+			self.acl_protocol == "icmp":
+			self.index += 1
 
 
 		# process the source
-		if acl[4] == "any":
+		if acl[self.index] == "any":
 			self.acl_source = "any"
-			elif acl[4] == "object"
+			self.index += 1
+		elif acl[self.index] == "object":
+			self.acl_source == acl[self.index + 1]
+			self.index += 2
+		elif acl[self.index] == "object-group":
+			self.acl_source == acl[self.index + 1]
+			self.index += 2
+		elif acl[self.index] == "host":
+			self.acl_source == acl[self.index + 1]
+			self.index += 2
+
+		# process the destination
 
 	def process_object(obj):
 
@@ -180,7 +194,7 @@ for obj in net_objs:
 			ip_str = child.re_match(RE_SUBNET, default=None)
 
 		if ip_str:
-			# if we found an IP address, convert to IPv4Obj and check if it belongs 
+			# if we found an IP address, convert to IPv4Obj and check if it belongs
 			# to the subnet we want, and vice-versa
 			addr = IPv4Obj(ip_str)
 			if addr in subnet:
@@ -218,7 +232,7 @@ for group in obj_groups:
 	# if there were children for this group, make a copy of all of them and
 	# append them to matched_groups. this is to limit the noise that is output by
 	# the group portion of the output section below; we only care why a given
-	# object group was selected, not about all of its contents. 
+	# object group was selected, not about all of its contents.
 	if children:
 		# create new parent that is the same as the one we have but without children
 		parent = IOSCfgLine(group.text)
@@ -228,7 +242,7 @@ for group in obj_groups:
 		# then append it to our matched groups
 		matched_groups.append(parent)
 
-			
+
 # get access list items
 if debug: print("extracting access-list")
 ACL = config.find_objects("^access-list ")
