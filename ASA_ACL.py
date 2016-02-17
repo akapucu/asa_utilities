@@ -2,7 +2,7 @@ import re
 
 RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
 
-class ASA_ACL():
+class ASA_ACL:
 	""" This class is used for deciphering a Cisco Access
 	Control List line. It takes in a string. Properties can
 	be looked up with related functions"""
@@ -25,7 +25,7 @@ class ASA_ACL():
 	index = 0
 
 
-	def init(ACL_string):
+	def __init__(self, ACL_string):
 		self.acl_string = ACL_string
 
 		# simple parsing methodology
@@ -49,7 +49,7 @@ class ASA_ACL():
 		elif not self.acl_type == "extended":
 			assert("Only extended access-list types are supported at this time")
 
-	def process_extended_acl(acl):
+	def process_extended_acl(self, acl):
 		# logic branch for extended ACLs
 
 		# should be either permit or deny
@@ -75,7 +75,7 @@ class ASA_ACL():
 			self.acl_protocol == "ip"
 			self.index += 1
 		elif acl[self.index] == "icmp":
-			self.acl_protocol == "icmp":
+			self.acl_protocol = "icmp"
 			self.index += 1
 
 
@@ -85,22 +85,22 @@ class ASA_ACL():
 			self.acl_source_type = "any"
 			self.index += 1
 		elif acl[self.index] == "object":
-			self.acl_source == acl[self.index + 1]
+			self.acl_source = acl[self.index + 1]
 			self.acl_source_type = "object"
 			self.index += 2
 		elif acl[self.index] == "object-group":
-			self.acl_source == acl[self.index + 1]
+			self.acl_source = acl[self.index + 1]
 			self.acl_source_type = "object-group"
 			self.index += 2
 		elif acl[self.index] == "host":
-			self.acl_source == acl[self.index + 1]
+			self.acl_source = acl[self.index + 1]
 			self.acl_source_type = "ip"
 			self.index += 2
-		elif RE_BARE_SUBNET.match(' '.join(acl[self.index : self.index + 1]):
+		elif RE_BARE_SUBNET.match(' '.join(acl[self.index : self.index + 1])):
 			self.acl_source = "test"
 			self.acl_source_type = "IPv4Obj"
 			self.index += 2
 
 		# process the destination
 
-	def process_object(obj):
+	#def process_object(obj):
