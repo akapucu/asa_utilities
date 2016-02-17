@@ -13,6 +13,17 @@ import pickle
 import argparse
 
 
+# regular expressions used throughout
+RE_OBJECT_NETWORK = re.compile('^object network (\S+)$')
+RE_OBJECT_GROUP = re.compile('^object-group network (\S+)$')
+RE_HOST = re.compile('^ host\s(\S+)$')
+RE_SUBNET = re.compile('^ subnet ([\S ]+)$')
+RE_NETWORK_OBJECT_HOST = re.compile('^ network-object host (\S+)$')
+RE_NETWORK_OBJECT_OBJECT = re.compile('^ network-object object (\S+)$')
+RE_BARE_ACL_HOST = re.compile('host ((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))')
+RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
+
+
 # parse arguments and determine a course of action
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
 	description="Check for relevant ACLs in a cisco config",
@@ -164,17 +175,6 @@ class ASA_ACL():
 	def process_object(obj):
 
 
-
-
-# regular expressions used throughout
-RE_OBJECT_NETWORK = re.compile('^object network (\S+)$')
-RE_OBJECT_GROUP = re.compile('^object-group network (\S+)$')
-RE_HOST = re.compile('^ host\s(\S+)$')
-RE_SUBNET = re.compile('^ subnet ([\S ]+)$')
-RE_NETWORK_OBJECT_HOST = re.compile('^ network-object host (\S+)$')
-RE_NETWORK_OBJECT_OBJECT = re.compile('^ network-object object (\S+)$')
-RE_BARE_ACL_HOST = re.compile('host ((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))')
-RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
 
 # get network objects
 if debug: print('finding network objects')
