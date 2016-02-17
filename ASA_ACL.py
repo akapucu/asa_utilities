@@ -100,10 +100,12 @@ class ASA_ACL:
 		new_index, self.acl_dest, self.acl_dest_type = self.extract_src_dest(acl, self.index)
 		self.index = new_index + 1
 
+
 	def extract_src_dest(self, acl, index):
 		# this function extracts the source or destination. It expects a list that represents all the words in an access-list line,
 		# and the index of the first word of the source or destination in that line. it will return a tuple of the index of the
 		# last word in the source or destination, the IP, and the type of entry the IP is
+
 
 		if acl[index] == "any":
 			ip_address = "any"
@@ -120,14 +122,14 @@ class ASA_ACL:
 			ip_address = ipaddress.ip_network(acl[index + 1])
 			ip_type = "ip"
 			index += 1
-		elif RE_BARE_SUBNET.match(' '.join(acl[index : index + 1])):
-			ip_address_string = ' '.join(acl[index: index + 1])
-			ip_address_string.replace(' ', '/')
+		elif RE_BARE_SUBNET.match(' '.join(acl[index : index + 2])):
+			ip_address_string = ' '.join(acl[index: index + 2])
+			ip_address_string = ip_address_string.replace(' ', '/')
 			ip_address = ipaddress.ip_network(ip_address_string)
 			ip_type = "ip"
 			index += 1
 		else:
-			raise Exception("could not determine source/destination type:" + acl[index:])
+			raise Exception("could not determine source/destination type:" + str(acl[index:]))
 
 		return (index, ip_address, ip_type)
 
