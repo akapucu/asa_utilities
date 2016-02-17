@@ -92,6 +92,7 @@ class ASA_ACL():
 	acl_protocol = None
 	acl_service_object = None
 	acl_source = None
+	acl_source_type = None
 	acl_dest = None
 
 	acl_string = None
@@ -159,15 +160,23 @@ class ASA_ACL():
 		# process the source
 		if acl[self.index] == "any":
 			self.acl_source = "any"
+			self.acl_source_type = "any"
 			self.index += 1
 		elif acl[self.index] == "object":
 			self.acl_source == acl[self.index + 1]
+			self.acl_source_type = "object"
 			self.index += 2
 		elif acl[self.index] == "object-group":
 			self.acl_source == acl[self.index + 1]
+			self.acl_source_type = "object-group"
 			self.index += 2
 		elif acl[self.index] == "host":
 			self.acl_source == acl[self.index + 1]
+			self.acl_source_type = "ip"
+			self.index += 2
+		elif RE_BARE_SUBNET.match(' '.join(acl[self.index : self.index + 1]):
+			self.acl_source = "test"
+			self.acl_source_type = "IPv4Obj"
 			self.index += 2
 
 		# process the destination
