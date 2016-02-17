@@ -5,7 +5,7 @@ RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?
 class ASA_ACL:
 	""" This class is used for deciphering a Cisco Access
 	Control List line. It takes in a string. Properties can
-	be looked up with related functions"""
+	be looked up with related attributes and functions"""
 
 	acl_name = None
 	acl_type = None
@@ -16,6 +16,7 @@ class ASA_ACL:
 	acl_source = None
 	acl_source_type = None
 	acl_dest = None
+	acl_remark = None
 
 	acl_string = None
 
@@ -32,12 +33,20 @@ class ASA_ACL:
 		acl = ACL_string.split()
 		# check for an actual acl
 		if not acl[self.index] == "access-list":
-			assert('Not a cisco Access-list. First word does not match "access-list"')
+			raise Exception('Not a cisco Access-list. First word does not match "access-list"')
+
 		self.index += 1
 
 		# acl_name
 		self.acl_name = acl[self.index]
 		self.index += 1
+
+		# determine if we have a specific line number
+		if acl[self.index] == "line":
+			self.acl_line = acl[self.index + 1]
+			self.index += 2
+		else:
+			self.acl_line = None
 
 		# acl_type
 		self.acl_type = acl[self.index]
@@ -46,8 +55,10 @@ class ASA_ACL:
 		# pass to the correct acl type processing function
 		if self.acl_type == "extended":
 			self.process_extended_acl(acl)
-		elif not self.acl_type == "extended":
-			assert("Only extended access-list types are supported at this time")
+		elif self.acl_type == "remark":
+			self.acl_remark = ' '.join(acl[self.index:])
+		else:
+			raise Exception("Only extended access-list types are supported at this time")
 
 	def process_extended_acl(self, acl):
 		# logic branch for extended ACLs
