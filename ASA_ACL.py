@@ -1,4 +1,5 @@
 import re
+import ipaddress
 
 RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
 
@@ -91,27 +92,42 @@ class ASA_ACL:
 
 
 		# process the source
-		if acl[self.index] == "any":
-			self.acl_source = "any"
-			self.acl_source_type = "any"
-			self.index += 1
-		elif acl[self.index] == "object":
-			self.acl_source = acl[self.index + 1]
-			self.acl_source_type = "object"
-			self.index += 2
-		elif acl[self.index] == "object-group":
-			self.acl_source = acl[self.index + 1]
-			self.acl_source_type = "object-group"
-			self.index += 2
-		elif acl[self.index] == "host":
-			self.acl_source = acl[self.index + 1]
-			self.acl_source_type = "ip"
-			self.index += 2
-		elif RE_BARE_SUBNET.match(' '.join(acl[self.index : self.index + 1])):
-			self.acl_source = "test"
-			self.acl_source_type = "IPv4Obj"
-			self.index += 2
+		new_index = self.extract_src_dest(acl, self.index)
+		self.index = new_index
 
 		# process the destination
+		new_index = self.extract_src_dest(acl, self.index)
+		self.index = new_index
+
+	def extract_src_dest(self, acl, index):
+		# this function extracts the source or destination. It expects a list that represents all the words in an access-list line,
+		# and the index of the first word of the source or destination in that line. it will return the index of the
+		# last word in the source or destination
+		if acl[index] == "any":
+			self.acl_source = "any"
+			self.acl_source_type = "any"
+		elif acl[index] == "object":
+			self.acl_source = acl[index + 1]
+			self.acl_source_type = "object"
+		elif acl[index] == "object-group":
+			self.acl_source = acl[index + 1]
+			self.acl_source_type = "object-group"
+			index += 1
+		elif acl[index] == "host":
+			ip_address = ipaddress.ip_network(acl[index + 1])
+			self.acl_source = ip_address
+			self.acl_source_type = "ip"
+			index += 1
+		elif RE_BARE_SUBNET.match(' '.join(acl[index : index + 1])):
+			ip_address_string = ' '.join(acl[index: index + 1])
+			ip_address_string.replace(' ', '/')
+			ip_address = ipaddress.ip_network(ip_address_string)
+			self.acl_source = ip_address
+			self.acl_source_type = "ip"
+			index += 1
+		else:
+			raise Exception("could not determine source/destination type:" + acl[index:])
+
+		return index
 
 	#def process_object(obj):
