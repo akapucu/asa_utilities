@@ -227,6 +227,9 @@ def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects,
 		parsed_acl = ASA_ACL(line.text)
 		# check access-list name
 		if (parsed_acl.name == acl_name) or not acl_name:
+			# flag to figure out if we need to check dest feilds. only applicable
+			# when using "both" for src_or_dest.
+			found = False
 			# figure out if we're matching source, dest, or both
 			if src_or_dest == "source" or src_or_dest == "both":
 				# check network objects as source
@@ -235,6 +238,7 @@ def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects,
 						obj_name = obj.re_match(RE_OBJECT_NETWORK)
 						if obj_name == parsed_acl.source:
 							ACL_matches.append(line)
+							found = True
 							break
 				# check object-groups as source
 				elif parsed_acl.source_type == "object-group":
@@ -242,12 +246,20 @@ def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects,
 						obj_name = obj_group.re_match(RE_OBJECT_GROUP)
 						if obj_name == parsed_acl.source:
 							ACL_matches.append(line)
+							found = True
 							break
+				# any matches any
+				elif parsed_acl.source_type == "any":
+					ACL_matches.append(line)
+					continue
 				# check for any IPv4Obj types as source
 				elif parsed_acl.source_type == "ip":
 					if (parsed_acl.source in ip_to_match) or (ip_to_match in parsed_acl.source):
 						ACL_matches.append(line)
 						continue
+			# check our flag so we don't accidentally do a redundant operation when checking "both"
+			if found:
+				continue
 
 			# now do the whole thing again for destinations
 			if src_or_dest == "dest" or src_or_dest == "both":
@@ -265,6 +277,10 @@ def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects,
 						if obj_name == parsed_acl.dest:
 							ACL_matches.append(line)
 							break
+				# any matches any
+				elif parsed_acl.dest_type == "any":
+					ACL_matches.append(line)
+					continue
 				# check for any IPv4Obj types as dest
 				elif parsed_acl.dest_type == "ip":
 					if (parsed_acl.dest in ip_to_match) or (ip_to_match in parsed_acl.dest):
@@ -299,7 +315,7 @@ if subnet:
 if source:
 	source_matched_groups = match_network_object_groups(source, object_groups, source_matched_objects)
 if dest:
-	dest_matched_groups = match_network_object_groups(dest, object_groups, dest_matched_groups)
+	dest_matched_groups = match_network_object_groups(dest, object_groups, dest_matched_objects)
 
 
 
