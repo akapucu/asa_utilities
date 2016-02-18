@@ -25,6 +25,7 @@ RE_BARE_ACL_HOST = re.compile('host ((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
 RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
 
 
+
 # parse arguments and determine a course of action
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
 	description="Check for relevant ACLs in a cisco config",
@@ -32,20 +33,48 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
 """Examples:\n\
 	Check an IP against a cisco config file: ACL_check.py -f config -i 1.2.3.4\n\
 	Generate a pickle file for faster lookups: ACL_check.py -f config -o pickle\n\
-	Check IP against pickle file: ACL_check.py -p pickle -i 1.2.3.4
+	Check IP against pickle file: ACL_check.py -p pickle -i 1.2.3.4\n\
+	Check source IP only, from the Outside-IN access-list, against a config file: ACL_check.py -s 8.8.8.8 -a Outside-IN -p pickle
 It is strongly advised to generate and use a pickle file to speed things up.""")
-parser.add_argument('-i', help="subnet/IP to check", dest="subnet")
-parser.add_argument('-s', help="source subnet/IP to check", dest="source")
-parser.add_argument('-d', help="destination subnet/IP to check", dest="dest")
-parser.add_argument('-a', help="access-list name to check", dest="acl_name")
-parser.add_argument('-f', help="input config file", dest="in_file")
-parser.add_argument('-p', help="input pickle file", dest="pickle_file")
-parser.add_argument('-o', help="output pickle file", dest="out_file")
+
+
+# group IP arguments together
+ip_groups = parser.add_argument_group("IP address specification")
+ip_groups.add_argument('-i', help="subnet/IP to check", dest="ip")
+ip_groups.add_argument('-s', help="source subnet/IP to check", dest="source")
+ip_groups.add_argument('-d', help="destination subnet/IP to check", dest="dest")
+parser.add_argument('-a', help="access-list name to check. if omitted, assumes all lists", dest="acl_name")
+# pickle and plaintext inputs are mutually exclusive
+input_group = parser.add_mutually_exclusive_group()
+input_group.add_argument('-f', help="input config file", dest="in_file")
+input_group.add_argument('-p', help="input pickle file", dest="pickle_file")
+parser.add_argument('-o', help="output pickle file. used in conjunction with -f", dest="out_file")
+
 parser.add_argument('--debug', help="debug", dest="debug", action="store_true")
 args = parser.parse_args()
 
 debug=args.debug
 
+
+# check for conflicting arguments and raise errors as necessary
+if args.out_file and (args.ip or args.source or args.dest):
+	parser.error("out_file conflicts with -i, -s, and -d")
+	sys.exit()
+if args.pickle_file and args.out_file:
+	parser.error("-p is only compatible with -f")
+	sys.exit()
+if args.ip and (args.source or args.dest):
+	parser.error("-s and -d cannot be used in conjunction with -i")
+	sys.exit()
+if not (args.ip or args.source or args.dest or args.out_file):
+	parser.error("One of [-i | -s | -d] or -o must be given.")
+	sys.exit()
+if not (args.in_file or args.pickle_file):
+	parser.error("One of -f or -p is necessary")
+	sys.exit()
+
+
+# are we generating a pickle file from an input?
 if args.out_file and args.in_file:
 	print("Generating pickle file. This can take some time with very large files. Try getting some coffee.")
 	fh = open(args.out_file, 'wb')
@@ -54,26 +83,51 @@ if args.out_file and args.in_file:
 	print("Done.")
 	sys.exit()
 
-elif args.subnet:
+
+# if we made it this far, we have an input! try to cast our inputs to things and see if shit explodes!
+subnet = None
+source = None
+dest = None
+
+if args.ip:
+	# try to cast to IPv4Obj for syntax checking
 	try:
-		subnet = IPv4Obj(args.subnet)
+		subnet = IPv4Obj(args.ip)
 	except:
 		print("Invalid subnet/IP")
-		if debug: print(args.subnet)
+		if debug: print(args.ip)
 		sys.exit()
-	if debug: print(subnet)
-	if args.pickle_file:
-		if debug: print("loading %s as pickle file" %(args.pickle_file))
-		config = pickle.load(open(args.pickle_file, 'rb'))
-	elif args.in_file:
-		if debug: print("loading %s as plaintext file" %(args.in_file))
-		config = CiscoConfParse(args.in_file)
-	else:
-		parser.error("One of -f or -p must be given with -s")
+if args.source:
+	try:
+		source = IPv4Obj(args.source)
+	except:
+		print("Invalid subnet/IP")
+		if debug: print(args.source)
+		sys.exit()
+if args.dest:
+	try:
+		dest = IPv4Obj(args.dest)
+	except:
+		print("Invalid subnet/IP")
+		if debug: print(args.dest)
 		sys.exit()
 
-else:
-	parser.error("One of -s or -o must be given.")
+if debug: print(subnet)
+if debug: print(source)
+if debug: print(dest)
+
+
+# are we loading from a pickle?
+if args.pickle_file:
+	if debug: print("loading %s as pickle file" %(args.pickle_file))
+	config = pickle.load(open(args.pickle_file, 'rb'))
+# if not, load in a file
+elif args.in_file:
+	if debug: print("loading %s as plaintext file" %(args.in_file))
+	config = CiscoConfParse(args.in_file)
+
+
+
 
 
 def is_substring_of_obj_list(obj_name, matched_objects):
