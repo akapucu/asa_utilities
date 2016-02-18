@@ -40,10 +40,10 @@ It is strongly advised to generate and use a pickle file to speed things up.""")
 
 # group IP arguments together
 ip_groups = parser.add_argument_group("IP address specification")
-ip_groups.add_argument('-i', help="subnet/IP to check", dest="ip")
-ip_groups.add_argument('-s', help="source subnet/IP to check", dest="source")
-ip_groups.add_argument('-d', help="destination subnet/IP to check", dest="dest")
-parser.add_argument('-a', help="access-list name to check. if omitted, assumes all lists", dest="acl_name")
+ip_groups.add_argument('-i', '--ip', help="subnet/IP to check", dest="ip")
+ip_groups.add_argument('-s', '--source', help="source subnet/IP to check", dest="source")
+ip_groups.add_argument('-d', '--dest', help="destination subnet/IP to check", dest="dest")
+parser.add_argument('-a', '--acl', help="access-list name to check. if omitted, assumes all lists", dest="acl_name")
 # pickle and plaintext inputs are mutually exclusive
 input_group = parser.add_mutually_exclusive_group()
 input_group.add_argument('-f', help="input config file", dest="in_file")
