@@ -129,6 +129,7 @@ elif args.in_file:
 
 
 
+# functions and stuff
 
 def is_substring_of_obj_list(obj_name, matched_objects):
 	# helper function for checking substrings in an object list
@@ -137,35 +138,52 @@ def is_substring_of_obj_list(obj_name, matched_objects):
 			return True
 	return False
 
+def match_network_objects(subnet, network_objects):
+	# takes in an IPv4Obj and a list of network_objects. returns a list of network_objects
+	# that match based on if the network_object address(es) are in the subnet or if the subnet
+	# is in the network_object
+	if debug: print('matching network objects with specified subnet')
+	matched_objects = []
+	for obj in network_objects:
+		#print(obj)
+		#print(obj.children)
+		for child in obj.children:
+			# match any statically defined hosts
+			ip_str = child.re_match(RE_HOST, default=None)
+			if not ip_str:
+				# try to match subnet definitions
+				ip_str = child.re_match(RE_SUBNET, default=None)
+
+			if ip_str:
+				# if we found an IP address, convert to IPv4Obj and check if it belongs
+				# to the subnet we want, and vice-versa
+				addr = IPv4Obj(ip_str)
+				if addr in subnet:
+					matched_objects.append(obj)
+					break
+				elif subnet in addr:
+					matched_objects.append(obj)
+					break
+			# TODO: match any statically defined subnets
+	return matched_objects
+
+
 
 # get network objects
 if debug: print('finding network objects')
 net_objs = config.find_objects(RE_OBJECT_NETWORK)
 
-# match subnet(s) against network objects
-if debug: print('matching network objects with specified subnet')
-matched_objects = []
-for obj in net_objs:
-	#print(obj)
-	#print(obj.children)
-	for child in obj.children:
-		# match any statically defined hosts
-		ip_str = child.re_match(RE_HOST, default=None)
-		if not ip_str:
-			# try to match subnet definitions
-			ip_str = child.re_match(RE_SUBNET, default=None)
 
-		if ip_str:
-			# if we found an IP address, convert to IPv4Obj and check if it belongs
-			# to the subnet we want, and vice-versa
-			addr = IPv4Obj(ip_str)
-			if addr in subnet:
-				matched_objects.append(obj)
-				break
-			elif subnet in addr:
-				matched_objects.append(obj)
-				break
-		# match any statically defined subnets
+# match ips, sources, and destinations against network objects
+if subnet:
+	matched_objects = match_network_objects(subnet, net_objs)
+if source:
+	source_matched_objects = match_network_objects(source, net_objs) 
+if dest:
+	dest_matched_objects = match_network_objects(dest, net_objs)
+
+
+
 
 # get object groups
 if debug: print('finding object groups')
