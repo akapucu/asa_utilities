@@ -272,56 +272,6 @@ def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects,
 						continue
 
 	return ACL_matches
-"""	if type(ip_to_match) == tuple:
-		# match based on source/dest specification
-		for line in ACL:
-			# parse the ACL line so we can read the source and destination attributes
-			parsed_acl = ASA_ACL(line.text)
-			# check access-list name
-			if parsed_acl.name == acl_name:
-
-				# check network objects as source
-				if parsed_acl.source_type == "object":
-					for obj in matched_objects:
-						obj_name = obj.re_match(RE_OBJECT_NETWORK)
-						if obj_name == parsed_acl.source:
-							ACL_matches.append(line)
-							break
-				# check object-groups as source
-				elif parsed_acl.source_type == "object-group":
-					for obj_group in matched_groups:
-						obj_name = obj_group.re_match(RE_OBJECT_GROUP)
-						if obj_name == parsed_acl.source:
-							ACL_matches.append(line)
-							break
-				# check for any IPv4Obj types as source
-				elif parsed_acl.source_type == "ip":
-					if (parsed_acl.source in ip_to_match) or (ip_to_match in parsed_acl.source):
-						ACL_matches.append(line)
-						break
-
-				# now do the whole thing again for destinations
-				# check network objects as dest
-				elif parsed_acl.dest_type == "object":
-					for obj in matched_objects:
-						obj_name = obj.re_match(RE_OBJECT_NETWORK)
-						if obj_name == parsed_acl.dest:
-							ACL_matches.append(line)
-							break
-				# check object-groups as dest
-				elif parsed_acl.dest_type == "object-group":
-					for obj_group in matched_groups:
-						obj_name = obj_group.re_match(RE_OBJECT_GROUP)
-						if obj_name == parsed_acl.dest:
-							ACL_matches.append(line)
-							break
-				# check for any IPv4Obj types as dest
-				elif parsed_acl.dest_type == "ip":
-					if (parsed_acl.dest in ip_to_match) or (ip_to_match in parsed_acl.dest):
-						ACL_matches.append(line)
-						break
-"""
-
 
 
 
