@@ -30,15 +30,18 @@ parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
 	description="Check for relevant ACLs in a cisco config",
 	epilog=
 """Examples:\n\
-	Check an IP against a cisco config file: ACL_check.py -f config -s 1.2.3.4\n\
+	Check an IP against a cisco config file: ACL_check.py -f config -i 1.2.3.4\n\
 	Generate a pickle file for faster lookups: ACL_check.py -f config -o pickle\n\
-	Check IP against pickle file: ACL_check.py -p pickle -s 1.2.3.4
+	Check IP against pickle file: ACL_check.py -p pickle -i 1.2.3.4
 It is strongly advised to generate and use a pickle file to speed things up.""")
-parser.add_argument('-s', help="subnet/IP to check", dest="subnet")
+parser.add_argument('-i', help="subnet/IP to check", dest="subnet")
+parser.add_argument('-s', help="source subnet/IP to check", dest="source")
+parser.add_argument('-d', help="destination subnet/IP to check", dest="dest")
+parser.add_argument('-a', help="access-list name to check", dest="acl_name")
 parser.add_argument('-f', help="input config file", dest="in_file")
 parser.add_argument('-p', help="input pickle file", dest="pickle_file")
 parser.add_argument('-o', help="output pickle file", dest="out_file")
-parser.add_argument('-d', help="debug", dest="debug", action="store_true")
+parser.add_argument('--debug', help="debug", dest="debug", action="store_true")
 args = parser.parse_args()
 
 debug=args.debug
