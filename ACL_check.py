@@ -91,26 +91,29 @@ dest = None
 
 if args.ip:
 	# try to cast to IPv4Obj for syntax checking
-	try:
-		subnet = IPv4Obj(args.ip)
-	except:
-		print("Invalid subnet/IP")
-		if debug: print(args.ip)
-		sys.exit()
+	subnet = args.ip.split(',')
+	for i,ip in enumerate(subnet):
+		try:
+			subnet[i] = IPv4Obj(ip)
+		except:
+			print('Invalid subnet/IP "%s"' %(ip))
+			sys.exit()
 if args.source:
-	try:
-		source = IPv4Obj(args.source)
-	except:
-		print("Invalid subnet/IP")
-		if debug: print(args.source)
-		sys.exit()
+	source = args.source.split(',')
+	for i,ip in enumerate(source):
+		try:
+			source[i] = IPv4Obj(ip)
+		except:
+			print('Invalid subnet/IP "%s"' %(ip))
+			sys.exit()
 if args.dest:
-	try:
-		dest = IPv4Obj(args.dest)
-	except:
-		print("Invalid subnet/IP")
-		if debug: print(args.dest)
-		sys.exit()
+	dest = args.dest.split(',')
+	for i,ip in enumerate(dest):
+		try:
+			dest[i] = IPv4Obj(ip)
+		except:
+			print('Invalid subnet/IP "%s"' %(ip))
+			sys.exit()
 
 acl_name = args.acl_name
 
@@ -118,7 +121,7 @@ if debug: print(subnet)
 if debug: print(source)
 if debug: print(dest)
 if debug: print(acl_name)
-
+sys.exit()
 
 # are we loading from a pickle?
 if args.pickle_file:
