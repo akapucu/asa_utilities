@@ -167,60 +167,72 @@ def match_network_objects(subnet, network_objects):
 			# TODO: match any statically defined subnets
 	return matched_objects
 
+def match_network_object_groups(subnet, object_groups, matched_objects):
+	# takes in an IPv4Obj, a list of object_groups, and a list of network_objects that were previously matched.
+	# iterates through the object_groups and returns a list of all object groups that matched either the subnet
+	# or one of the objects in matched_objects
+	matched_groups = []
+	for group in object_groups:
+		# accumulate children
+		children = []
+		for child in group.children:
+			# match any previously discovered network objects
+			network_object = child.re_match(RE_NETWORK_OBJECT_OBJECT, default=None)
+			# match any statically defined hosts
+			if not network_object:
+				ip_str = child.re_match(RE_NETWORK_OBJECT_HOST, default=None)
+
+			if network_object:
+				if is_substring_of_obj_list(network_object, matched_objects):
+					children.append(child)
+					# break
+			elif ip_str:
+				addr = IPv4Obj(ip_str)
+				if addr in subnet:
+					children.append(child)
+					# break
+
+		# if there were children for this group, make a copy of all of them and
+		# append them to matched_groups. this is to limit the noise that is output by
+		# the group portion of the output section below; we only care why a given
+		# object group was selected, not about all of its contents.
+		if children:
+			# create new parent that is the same as the one we have but without children
+			parent = IOSCfgLine(group.text)
+			# and give it children that are pertinent to our query
+			for child in children:
+				parent.add_child(child)
+			# then append it to our matched groups
+			matched_groups.append(parent)
+	return matched_groups
 
 
-# get network objects
+
+# get all network objects
 if debug: print('finding network objects')
 net_objs = config.find_objects(RE_OBJECT_NETWORK)
-
 
 # match ips, sources, and destinations against network objects
 if subnet:
 	matched_objects = match_network_objects(subnet, net_objs)
 if source:
-	source_matched_objects = match_network_objects(source, net_objs) 
+	source_matched_objects = match_network_objects(source, net_objs)
 if dest:
 	dest_matched_objects = match_network_objects(dest, net_objs)
 
 
 
-
-# get object groups
+# get all object groups
 if debug: print('finding object groups')
-obj_groups = config.find_objects(RE_OBJECT_GROUP)
-matched_groups = []
-for group in obj_groups:
-	# accumulate children
-	children = []
-	for child in group.children:
-		# match any previously discovered network objects
-		network_object = child.re_match(RE_NETWORK_OBJECT_OBJECT, default=None)
-		# match any statically defined hosts
-		if not network_object:
-			ip_str = child.re_match(RE_NETWORK_OBJECT_HOST, default=None)
+object_groups = config.find_objects(RE_OBJECT_GROUP)
 
-		if network_object:
-			if is_substring_of_obj_list(network_object, matched_objects):
-				children.append(child)
-				# break
-		elif ip_str:
-			addr = IPv4Obj(ip_str)
-			if addr in subnet:
-				children.append(child)
-				# break
-
-	# if there were children for this group, make a copy of all of them and
-	# append them to matched_groups. this is to limit the noise that is output by
-	# the group portion of the output section below; we only care why a given
-	# object group was selected, not about all of its contents.
-	if children:
-		# create new parent that is the same as the one we have but without children
-		parent = IOSCfgLine(group.text)
-		# and give it children that are pertinent to our query
-		for child in children:
-			parent.add_child(child)
-		# then append it to our matched groups
-		matched_groups.append(parent)
+# match ips, sources, and destinations against object groups
+if subnet:
+	matched_groups = match_network_object_groups(subnet, object_groups, matched_objects)
+if source:
+	source_matched_groups = match_network_object_groups(source, object_groups, source_matched_objects)
+if dest:
+	dest_matched_groups = match_network_object_groups(dest, object_groups, dest_matched_groups)
 
 
 # get access list items
