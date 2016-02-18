@@ -206,6 +206,41 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 			matched_groups.append(parent)
 	return matched_groups
 
+def match_access_lists(ACL, subnet, matched_objects, matched_groups):
+	# takes in a list of ACL lines and matches them against the other provided arguments
+	# returns a list of matching lines
+	ACL_matches = []
+	for line in ACL:
+		# check network objects
+		for obj in matched_objects:
+			obj_name = obj.re_match(RE_OBJECT_NETWORK)
+			if obj_name in line.text:
+				ACL_matches.append(line)
+				break
+		# check object groups
+		for obj_group in matched_groups:
+			obj_name = obj_group.re_match(RE_OBJECT_GROUP)
+			if obj_name in line.text:
+				ACL_matches.append(line)
+				break
+		# check bare IP addresses
+		IPs = RE_BARE_ACL_HOST.findall(line.text)
+		for IP in IPs:
+			if IPv4Obj(IP) in subnet:
+				ACL_matches.append(line)
+				break
+		# check bare subnets
+		IPs = RE_BARE_SUBNET.findall(line.text)
+		# if IPs:
+		# 	print(line.text)
+		for IP in IPs:
+			try:
+				if IPv4Obj(IP) in subnet:
+					ACL_matches.append(line)
+					break
+			except:
+				pass
+	return ACL_matches
 
 
 # get all network objects
@@ -235,41 +270,23 @@ if dest:
 	dest_matched_groups = match_network_object_groups(dest, object_groups, dest_matched_groups)
 
 
+
 # get access list items
 if debug: print("extracting access-list")
 ACL = config.find_objects("^access-list ")
-ACL_matches = []
-for line in ACL:
-	# check network objects
-	for obj in matched_objects:
-		obj_name = obj.re_match(RE_OBJECT_NETWORK)
-		if obj_name in line.text:
-			ACL_matches.append(line)
-			break
-	# check object groups
-	for obj_group in matched_groups:
-		obj_name = obj_group.re_match(RE_OBJECT_GROUP)
-		if obj_name in line.text:
-			ACL_matches.append(line)
-			break
-	# check bare IP addresses
-	IPs = RE_BARE_ACL_HOST.findall(line.text)
-	for IP in IPs:
-		if IPv4Obj(IP) in subnet:
-			ACL_matches.append(line)
-			break
-	# check bare subnets
-	IPs = RE_BARE_SUBNET.findall(line.text)
-	# if IPs:
-	# 	print(line.text)
-	for IP in IPs:
-		try:
-			if IPv4Obj(IP) in subnet:
-				ACL_matches.append(line)
-				break
-		except:
-			pass
 
+
+# match against access-list items
+if subnet:
+	ACL_matches = match_access_lists(ACL, subnet, matched_objects, matched_groups)
+if source:
+	source_ACL_matches = match_access_lists(ACL, source, source_matched_objects, source_matched_groups)
+if dest:
+	dest_ACL_matches = match_access_lists(ACL, dest, dest_matched_objects, dest_matched_groups)
+
+
+
+# print results
 print("Matched network objects")
 for obj in matched_objects:
 	print(obj.text)
