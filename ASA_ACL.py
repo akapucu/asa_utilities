@@ -8,19 +8,19 @@ class ASA_ACL:
 	Control List line. It takes in a string. Properties can
 	be looked up with related attributes and functions"""
 
-	acl_name = None
+	name = None
 	acl_type = None
-	acl_permission = None
-	acl_line = None
-	acl_protocol = None
-	acl_service_object = None
-	acl_source = None
-	acl_source_type = None
-	acl_dest = None
-	acl_dest_type = None
-	acl_remark = None
+	permission = None
+	line = None
+	protocol = None
+	service_object = None
+	source = None
+	source_type = None
+	dest = None
+	dest_type = None
+	remark = None
 
-	acl_string = None
+	text = None
 
 	# this is the current index that we're using to process the ACL.
 	# needs to be kept track of because of the way that different ACL
@@ -29,7 +29,7 @@ class ASA_ACL:
 
 
 	def __init__(self, ACL_string):
-		self.acl_string = ACL_string
+		self.text = ACL_string
 
 		# simple parsing methodology
 		acl = ACL_string.split()
@@ -40,15 +40,15 @@ class ASA_ACL:
 		self.index += 1
 
 		# acl_name
-		self.acl_name = acl[self.index]
+		self.name = acl[self.index]
 		self.index += 1
 
 		# determine if we have a specific line number
 		if acl[self.index] == "line":
-			self.acl_line = acl[self.index + 1]
+			self.line = acl[self.index + 1]
 			self.index += 2
 		else:
-			self.acl_line = None
+			self.line = None
 
 		# acl_type
 		self.acl_type = acl[self.index]
@@ -58,7 +58,7 @@ class ASA_ACL:
 		if self.acl_type == "extended":
 			self.process_extended_acl(acl)
 		elif self.acl_type == "remark":
-			self.acl_remark = ' '.join(acl[self.index:])
+			self.remark = ' '.join(acl[self.index:])
 		else:
 			raise Exception("Only extended access-list types are supported at this time")
 
@@ -66,38 +66,38 @@ class ASA_ACL:
 		# logic branch for extended ACLs
 
 		# should be either permit or deny
-		self.acl_permission = acl[self.index]
+		self.permission = acl[self.index]
 		self.index += 1
 
 		# protocol processing
 		if acl[self.index] == "object":
-			self.acl_protocol = "defined by object"
-			self.acl_service_object = acl[self.index + 1]
+			self.protocol = "defined by object"
+			self.service_object = acl[self.index + 1]
 			self.index += 2
 		elif acl[self.index] == "object-group":
-			self.acl_protocol = "defined by object-group"
-			self.acl_service_object = acl[self.index + 1]
+			self.protocol = "defined by object-group"
+			self.service_object = acl[self.index + 1]
 			self.index += 2
 		elif acl[self.index] == "tcp":
-			self.acl_protocol == "tcp"
+			self.protocol == "tcp"
 			self.index += 1
 		elif acl[self.index] == "udp":
-			self.acl_protocol == "udp"
+			self.protocol == "udp"
 			self.index += 1
 		elif acl[self.index] == "ip":
-			self.acl_protocol == "ip"
+			self.protocol == "ip"
 			self.index += 1
 		elif acl[self.index] == "icmp":
-			self.acl_protocol = "icmp"
+			self.protocol = "icmp"
 			self.index += 1
 
 
 		# process the source
-		new_index, self.acl_source, self.acl_source_type = self.extract_src_dest(acl, self.index)
+		new_index, self.source, self.source_type = self.extract_src_dest(acl, self.index)
 		self.index = new_index + 1
 
 		# process the destination
-		new_index, self.acl_dest, self.acl_dest_type = self.extract_src_dest(acl, self.index)
+		new_index, self.dest, self.dest_type = self.extract_src_dest(acl, self.index)
 		self.index = new_index + 1
 
 
