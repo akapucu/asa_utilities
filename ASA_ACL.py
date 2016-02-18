@@ -90,6 +90,14 @@ class ASA_ACL:
 		elif acl[self.index] == "icmp":
 			self.protocol = "icmp"
 			self.index += 1
+		elif acl[self.index] == "eigrp":
+			self.protocol = "eigrp"
+			self.index += 1
+		elif acl[self.index] == "esp":
+			self.protocol = "esp"
+			self.index += 1
+		else:
+			raise Exception("Unsupported protocol: " + str(acl[self.index]))
 
 
 		# process the source
