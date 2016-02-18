@@ -1,5 +1,5 @@
 import re
-import ipaddress
+from ciscoconfparse.ccp_util import IPv4Obj
 
 RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
 
@@ -119,13 +119,12 @@ class ASA_ACL:
 			ip_type = "object-group"
 			index += 1
 		elif acl[index] == "host":
-			ip_address = ipaddress.ip_network(acl[index + 1])
+			ip_address = IPv4Obj(acl[index + 1])
 			ip_type = "ip"
 			index += 1
 		elif RE_BARE_SUBNET.match(' '.join(acl[index : index + 2])):
 			ip_address_string = ' '.join(acl[index: index + 2])
-			ip_address_string = ip_address_string.replace(' ', '/')
-			ip_address = ipaddress.ip_network(ip_address_string)
+			ip_address = IPv4Obj(ip_address_string)
 			ip_type = "ip"
 			index += 1
 		else:
