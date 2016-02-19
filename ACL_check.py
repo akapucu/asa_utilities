@@ -179,7 +179,7 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 	matched_groups = []
 	for group in object_groups:
 		# accumulate children
-		children = []
+		#children = []   # doesn't work
 		for child in group.children:
 			# match any previously discovered network objects
 			network_object = child.re_match(RE_NETWORK_OBJECT_OBJECT, default=None)
@@ -189,13 +189,17 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 
 			if network_object:
 				if is_substring_of_obj_list(network_object, matched_objects):
-					children.append(child)
-					# break
+					matched_groups.append(group)
+					#children.append(child)   # doesn't work
+					break
 			elif ip_str:
 				addr = IPv4Obj(ip_str)
 				if addr in subnet:
-					children.append(child)
-					# break
+					matched_groups.append(group)
+					#children.append(child)    # doesn't work
+					break
+
+""" # this shit doesn't work after making the modifications for multiple subnet checking
 
 		# if there were children for this group, make a copy of all of them and
 		# append them to matched_groups. this is to limit the noise that is output by
@@ -209,6 +213,7 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 				parent.add_child(child)
 			# then append it to our matched groups
 			matched_groups.append(parent)
+"""
 	return matched_groups
 
 def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects, matched_groups):
