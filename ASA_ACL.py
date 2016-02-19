@@ -115,7 +115,7 @@ class ASA_ACL:
 		self.index = new_index + 1
 
 		# check for dest port specification
-		if self.index == len(acl):
+		if self.index < len(acl):
 			if acl[self.index] == "eq":
 				self.dest_port = acl[self.index + 1]
 				self.index += 2
