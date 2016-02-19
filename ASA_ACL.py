@@ -1,4 +1,4 @@
-import re
+	import re
 from ciscoconfparse.ccp_util import IPv4Obj
 
 RE_BARE_SUBNET = re.compile('(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?) (?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
@@ -16,8 +16,10 @@ class ASA_ACL:
 	service_object = None
 	source = None
 	source_type = None
+	source_port = None
 	dest = None
 	dest_type = None
+	dest_port = None
 	remark = None
 
 	text = None
@@ -99,14 +101,24 @@ class ASA_ACL:
 		else:
 			raise Exception("Unsupported protocol: " + str(acl[self.index]))
 
-
 		# process the source
 		new_index, self.source, self.source_type = self.extract_src_dest(acl, self.index)
 		self.index = new_index + 1
 
+		# check for source port specification
+		if acl[self.index] == "eq":
+			self.source_port = acl[self.index + 1]
+			self.index += 2
+
 		# process the destination
 		new_index, self.dest, self.dest_type = self.extract_src_dest(acl, self.index)
 		self.index = new_index + 1
+
+		# check for dest port specification
+		if self.index == len(acl):
+			if acl[self.index] == "eq":
+				self.dest_port = acl[self.index + 1]
+				self.index += 2
 
 
 	def extract_src_dest(self, acl, index):
