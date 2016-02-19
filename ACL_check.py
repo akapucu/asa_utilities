@@ -291,6 +291,11 @@ def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects,
 
 	return ACL_matches
 
+def union_list_of_lists(in_list):
+	# some black magic to condense and deduplicate a list of lists down to one list.
+	# returns a set
+	out_list = set(in_list[0]).union(*in_list[1:])
+	return out_list
 
 
 # get all network objects
@@ -302,21 +307,18 @@ if subnet:
 	matched_objects = []
 	for ip in subnet:
 		matched_objects.append(match_network_objects(ip, net_objs))
-	# some black magic to condense and deduplicate a list of lists down to one list
-	matched_objects = set(matched_objects[0]).union(*matched_objects[1:])
+	matched_objects = union_list_of_lists(matched_objects)
 if source:
 	source_matched_objects = []
 	for ip in source:
 	 	source_matched_objects.append(match_network_objects(ip, net_objs))
-	source_matched_objects = set(source_matched_objects[0]).union(*source_matched_objects[1:])
+	source_matched_objects = union_list_of_lists(source_matched_objects)
 if dest:
 	dest_matched_objects = []
 	for ip in dest:
 		dest_matched_objects.append(match_network_objects(ip, net_objs))
-	dest_matched_objects = set(dest_matched_objects[0]).union(*dest_matched_objects[1:])
+	dest_matched_objects = union_list_of_lists(dest_matched_objects)
 
-[print(obj.text) for obj in matched_objects]
-sys.exit()
 
 
 # get all object groups
@@ -324,13 +326,27 @@ if debug: print('finding object groups')
 object_groups = config.find_objects(RE_OBJECT_GROUP)
 
 # match ips, sources, and destinations against object groups
+# TODO: this can be made more efficient when parsing multiple ip addresses that were passed in through one parameter
+# by not searching through the matched_objects list every time
 if subnet:
-	matched_groups = match_network_object_groups(subnet, object_groups, matched_objects)
+	matched_groups = []
+	for ip in subnet:
+		matched_groups.append(match_network_object_groups(subnet, object_groups, matched_objects))
+	matched_groups = union_list_of_lists(matched_groups)
 if source:
-	source_matched_groups = match_network_object_groups(source, object_groups, source_matched_objects)
+	source_matched_groups = []
+	for ip in source:
+		source_matched_groups.append(match_network_object_groups(source, object_groups, source_matched_objects))
+	source_matched_groups = union_list_of_lists(source_matched_groups)
 if dest:
-	dest_matched_groups = match_network_object_groups(dest, object_groups, dest_matched_objects)
+	dest_matched_groups = []
+	for ip in dest:
+		dest_matched_groups.append(match_network_object_groups(dest, object_groups, dest_matched_objects))
+	dest_matched_groups = union_list_of_lists(dest_matched_groups)
 
+[print(each.text) for each in matched_objects]
+[print(each.text) for each in matched_groups]
+sys.exit()
 
 
 # get access list items
