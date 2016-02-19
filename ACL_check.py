@@ -211,10 +211,10 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 			matched_groups.append(parent)
 	return matched_groups
 
-def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects, matched_groups):
+def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects, matched_groups):
 	# takes in a list of ACL lines and matches them against the other provided arguments.
 	# returns a list of matching lines.
-	# ip_to_match must be IPv4Obj
+	# ips_to_match must be a list of IPv4Obj
 	# src_or_dest should be a string containing either "source", "dest", or "both"
 	# src_or_dest specifies what ip_to_match should be tested against
 	# matched_objects is a list of network objects
@@ -229,65 +229,74 @@ def match_access_lists(ACL, acl_name, ip_to_match, src_or_dest, matched_objects,
 		parsed_acl = ASA_ACL(line.text)
 		# check access-list name
 		if (parsed_acl.name == acl_name) or not acl_name:
-			# flag to figure out if we need to check dest feilds. only applicable
-			# when using "both" for src_or_dest.
+			# flag to figure out if we should skip to
+			# the next line because we found something
 			found = False
-			# figure out if we're matching source, dest, or both
-			if src_or_dest == "source" or src_or_dest == "both":
-				# check network objects as source
-				if parsed_acl.source_type == "object":
-					for obj in matched_objects:
-						obj_name = obj.re_match(RE_OBJECT_NETWORK)
-						if obj_name == parsed_acl.source:
-							ACL_matches.append(line)
-							found = True
-							break
-				# check object-groups as source
-				elif parsed_acl.source_type == "object-group":
-					for obj_group in matched_groups:
-						obj_name = obj_group.re_match(RE_OBJECT_GROUP)
-						if obj_name == parsed_acl.source:
-							ACL_matches.append(line)
-							found = True
-							break
-				# any matches any
-				elif parsed_acl.source_type == "any":
-					ACL_matches.append(line)
-					continue
-				# check for any IPv4Obj types as source
-				elif parsed_acl.source_type == "ip":
-					if (parsed_acl.source in ip_to_match) or (ip_to_match in parsed_acl.source):
-						ACL_matches.append(line)
-						continue
-			# check our flag so we don't accidentally do a redundant operation when checking "both"
-			if found:
-				continue
+			# iterate thorugh the ips_to_match
+			for ip_to_match in ips_to_match:
 
-			# now do the whole thing again for destinations
-			if src_or_dest == "dest" or src_or_dest == "both":
-				# check network objects as dest
-				if parsed_acl.dest_type == "object":
-					for obj in matched_objects:
-						obj_name = obj.re_match(RE_OBJECT_NETWORK)
-						if obj_name == parsed_acl.dest:
-							ACL_matches.append(line)
-							break
-				# check object-groups as dest
-				elif parsed_acl.dest_type == "object-group":
-					for obj_group in matched_groups:
-						obj_name = obj_group.re_match(RE_OBJECT_GROUP)
-						if obj_name == parsed_acl.dest:
-							ACL_matches.append(line)
-							break
-				# any matches any
-				elif parsed_acl.dest_type == "any":
-					ACL_matches.append(line)
-					continue
-				# check for any IPv4Obj types as dest
-				elif parsed_acl.dest_type == "ip":
-					if (parsed_acl.dest in ip_to_match) or (ip_to_match in parsed_acl.dest):
+				# figure out if we're matching source, dest, or both
+				if src_or_dest == "source" or src_or_dest == "both":
+					# check network objects as source
+					if parsed_acl.source_type == "object":
+						for obj in matched_objects:
+							obj_name = obj.re_match(RE_OBJECT_NETWORK)
+							if obj_name == parsed_acl.source:
+								ACL_matches.append(line)
+								found = True
+								break
+					# check object-groups as source
+					elif parsed_acl.source_type == "object-group":
+						for obj_group in matched_groups:
+							obj_name = obj_group.re_match(RE_OBJECT_GROUP)
+							if obj_name == parsed_acl.source:
+								ACL_matches.append(line)
+								found = True
+								break
+					# any matches any
+					elif parsed_acl.source_type == "any":
 						ACL_matches.append(line)
-						continue
+						found = True
+					# check for any IPv4Obj types as source
+					elif parsed_acl.source_type == "ip":
+						if (parsed_acl.source in ip_to_match) or (ip_to_match in parsed_acl.source):
+							ACL_matches.append(line)
+							found = True
+				# check our flag here so we don't accidentally do a redundant operation when checking "both"
+				if found:
+					break
+
+				# now do the whole thing again for destinations
+				if src_or_dest == "dest" or src_or_dest == "both":
+					# check network objects as dest
+					if parsed_acl.dest_type == "object":
+						for obj in matched_objects:
+							obj_name = obj.re_match(RE_OBJECT_NETWORK)
+							if obj_name == parsed_acl.dest:
+								ACL_matches.append(line)
+								found = True
+								break
+					# check object-groups as dest
+					elif parsed_acl.dest_type == "object-group":
+						for obj_group in matched_groups:
+							obj_name = obj_group.re_match(RE_OBJECT_GROUP)
+							if obj_name == parsed_acl.dest:
+								ACL_matches.append(line)
+								found = True
+								break
+					# any matches any
+					elif parsed_acl.dest_type == "any":
+						ACL_matches.append(line)
+						found = True
+					# check for any IPv4Obj types as dest
+					elif parsed_acl.dest_type == "ip":
+						if (parsed_acl.dest in ip_to_match) or (ip_to_match in parsed_acl.dest):
+							ACL_matches.append(line)
+							found = True
+
+				# check our flag again, force a skip to next line in ACL if needed
+				if found:
+					break
 
 	return ACL_matches
 
@@ -327,7 +336,7 @@ object_groups = config.find_objects(RE_OBJECT_GROUP)
 
 # match ips, sources, and destinations against object groups
 # TODO: this can be made more efficient when parsing multiple ip addresses that were passed in through one parameter
-# by not searching through the matched_objects list every time
+# by not searching through the matched_objects lists every time
 if subnet:
 	matched_groups = []
 	for ip in subnet:
@@ -344,9 +353,6 @@ if dest:
 		dest_matched_groups.append(match_network_object_groups(dest, object_groups, dest_matched_objects))
 	dest_matched_groups = union_list_of_lists(dest_matched_groups)
 
-[print(each.text) for each in matched_objects]
-[print(each.text) for each in matched_groups]
-sys.exit()
 
 
 # get access list items
@@ -367,8 +373,8 @@ if dest:
 if source and dest:
 	# set intersection between ACL lines that matched source and dest parameters
 	ACL_matches = [line for line in source_ACL_matches if line in dest_ACL_matches]
-	matched_objects = source_matched_objects + dest_matched_objects
-	matched_groups = source_matched_groups + dest_matched_groups
+	matched_objects = source_matched_objects.union(dest_matched_objects)
+	matched_groups = source_matched_groups.union(dest_matched_groups)
 elif source:
 	ACL_matches = source_ACL_matches
 	matched_objects = source_matched_objects
