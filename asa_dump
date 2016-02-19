@@ -7,7 +7,7 @@ import sys
 username = input("Username: ")
 password = getpass()
 
-page = requests.get('https://***REMOVED***/admin/exec/show%20running-config/show%20running-config%20asdm', auth=(username, password),  verify=False)
+page = requests.get('https://REDACTED/admin/exec/show%20running-config/show%20running-config%20asdm', auth=(username, password),  verify=False)
 
 with open(sys.argv[1], 'w') as outfile:
 	print(page.text, file=outfile)

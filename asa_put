@@ -1,7 +1,7 @@
 #!/usr/bin/expect
 set remote_server [lrange $argv 0 0]
 set timeout 10
-spawn ssh -M -p 9002 ***REMOVED***@$remote_server
+spawn ssh -M -p 9002 REDACTED@$remote_server
 
 set fh [open "outside-in-fixed" r]
 #set lines [split [read $fh "\n"]]
@@ -35,7 +35,7 @@ while 1 {
                 log_file
                 spawn telnet $remote_server
               }
-    "sername:" {send "***REMOVED***\r"}
+    "sername:" {send "REDACTED\r"}
     "assword:" {send -- "REDACTED\r"}
     ">"        {send "enable\r"}
     "#"        {break}

@@ -7,8 +7,8 @@ from paramikoe import SSHClientInteraction
 
 # initialize variables
 port = 22
-asa_address = '***REMOVED***'
-asa_username = input("username (enter for ***REMOVED***): ")
+asa_address = 'REDACTED'
+asa_username = input("username (enter for REDACTED): ")
 asa_password = getpass()
 asa_timeout = 15
 asa_port = 22
@@ -19,7 +19,7 @@ debug=False
 # additional initialization
 ssh_known_hosts = os.path.expanduser(ssh_known_hosts)
 if not asa_username:
-	asa_username = '***REMOVED***'
+	asa_username = 'REDACTED'
 enable_password = asa_password
 if debug:
 	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
