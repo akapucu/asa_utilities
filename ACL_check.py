@@ -121,7 +121,6 @@ if debug: print(subnet)
 if debug: print(source)
 if debug: print(dest)
 if debug: print(acl_name)
-sys.exit()
 
 # are we loading from a pickle?
 if args.pickle_file:
@@ -300,12 +299,24 @@ net_objs = config.find_objects(RE_OBJECT_NETWORK)
 
 # match ips, sources, and destinations against network objects
 if subnet:
-	matched_objects = match_network_objects(subnet, net_objs)
+	matched_objects = []
+	for ip in subnet:
+		matched_objects.append(match_network_objects(ip, net_objs))
+	# some black magic to condense and deduplicate a list of lists down to one list
+	matched_objects = set(matched_objects[0]).union(*matched_objects[1:])
 if source:
-	source_matched_objects = match_network_objects(source, net_objs)
+	source_matched_objects = []
+	for ip in source:
+	 	source_matched_objects.append(match_network_objects(ip, net_objs))
+	source_matched_objects = set(source_matched_objects[0]).union(*source_matched_objects[1:])
 if dest:
-	dest_matched_objects = match_network_objects(dest, net_objs)
+	dest_matched_objects = []
+	for ip in dest:
+		dest_matched_objects.append(match_network_objects(ip, net_objs))
+	dest_matched_objects = set(dest_matched_objects[0]).union(*dest_matched_objects[1:])
 
+[print(obj.text) for obj in matched_objects]
+sys.exit()
 
 
 # get all object groups
