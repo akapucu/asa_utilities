@@ -127,7 +127,7 @@ class ASA_ACL:
 		# last word in the source or destination, the IP, and the type of entry the IP is
 
 
-		if acl[index] == "any":
+		if acl[index] == "any" or acl[index] == "any4":
 			ip_address = "any"
 			ip_type = "any"
 		elif acl[index] == "object":
