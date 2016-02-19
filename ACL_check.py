@@ -198,7 +198,8 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 					matched_groups.append(group)
 					#children.append(child)    # doesn't work
 					break
-
+					
+	return matched_groups
 """ # this shit doesn't work after making the modifications for multiple subnet checking
 
 		# if there were children for this group, make a copy of all of them and
@@ -213,8 +214,9 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 				parent.add_child(child)
 			# then append it to our matched groups
 			matched_groups.append(parent)
-"""
 	return matched_groups
+"""
+
 
 def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects, matched_groups):
 	# takes in a list of ACL lines and matches them against the other provided arguments.
