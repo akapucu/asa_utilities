@@ -16,7 +16,8 @@ import argparse
 
 # regular expressions used throughout
 RE_OBJECT_NETWORK = re.compile('^object network (\S+)$')
-RE_OBJECT_GROUP = re.compile('^object-group network (\S+)$')
+RE_OBJECT_GROUP_NETWORK = re.compile('^object-group network (\S+)$')
+RE_OBJECT_GROUP_SERVICE = re.compile('^object-group service (\S+)( \S+)?$')
 RE_HOST = re.compile('^ host\s(\S+)$')
 RE_SUBNET = re.compile('^ subnet ([\S ]+)$')
 RE_NETWORK_OBJECT_HOST = re.compile('^ network-object host (\S+)$')
@@ -198,7 +199,7 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 					matched_groups.append(group)
 					#children.append(child)    # doesn't work
 					break
-					
+
 	return matched_groups
 """ # this shit doesn't work after making the modifications for multiple subnet checking
 
@@ -220,7 +221,7 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 
 def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects, matched_groups):
 	# takes in a list of ACL lines and matches them against the other provided arguments.
-	# returns a list of matching lines.
+	# returns tuple of a list of matching lines and a list of service objects/groups that were in the matched ACLs.
 	# ips_to_match must be a list of IPv4Obj
 	# src_or_dest should be a string containing either "source", "dest", or "both"
 	# src_or_dest specifies what ip_to_match should be tested against
@@ -229,6 +230,7 @@ def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects
 	# TODO: support for specifying a known network-object or object-group to match against
 
 	ACL_matches = []
+	service_object_matches = []
 
 	# match on both source and dest
 	for line in ACL:
@@ -249,28 +251,25 @@ def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects
 						for obj in matched_objects:
 							obj_name = obj.re_match(RE_OBJECT_NETWORK)
 							if obj_name == parsed_acl.source:
-								ACL_matches.append(line)
 								found = True
 								break
 					# check object-groups as source
 					elif parsed_acl.source_type == "object-group":
 						for obj_group in matched_groups:
-							obj_name = obj_group.re_match(RE_OBJECT_GROUP)
+							obj_name = obj_group.re_match(RE_OBJECT_GROUP_NETWORK)
 							if obj_name == parsed_acl.source:
-								ACL_matches.append(line)
 								found = True
 								break
 					# any matches any
 					elif parsed_acl.source_type == "any":
-						ACL_matches.append(line)
 						found = True
 					# check for any IPv4Obj types as source
 					elif parsed_acl.source_type == "ip":
 						if (parsed_acl.source in ip_to_match) or (ip_to_match in parsed_acl.source):
-							ACL_matches.append(line)
 							found = True
 				# check our flag here so we don't accidentally do a redundant operation when checking "both"
 				if found:
+					ACL_matches.append(line)
 					break
 
 				# now do the whole thing again for destinations
@@ -280,32 +279,31 @@ def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects
 						for obj in matched_objects:
 							obj_name = obj.re_match(RE_OBJECT_NETWORK)
 							if obj_name == parsed_acl.dest:
-								ACL_matches.append(line)
 								found = True
 								break
 					# check object-groups as dest
 					elif parsed_acl.dest_type == "object-group":
 						for obj_group in matched_groups:
-							obj_name = obj_group.re_match(RE_OBJECT_GROUP)
+							obj_name = obj_group.re_match(RE_OBJECT_GROUP_NETWORK)
 							if obj_name == parsed_acl.dest:
-								ACL_matches.append(line)
 								found = True
 								break
 					# any matches any
 					elif parsed_acl.dest_type == "any":
-						ACL_matches.append(line)
 						found = True
 					# check for any IPv4Obj types as dest
 					elif parsed_acl.dest_type == "ip":
 						if (parsed_acl.dest in ip_to_match) or (ip_to_match in parsed_acl.dest):
-							ACL_matches.append(line)
 							found = True
 
 				# check our flag again, force a skip to next line in ACL if needed
 				if found:
+					ACL_matches.append(line)
+					if parsed_acl.protocol == "defined by object" or parsed_acl.protocol == "defined by object-group":
+						service_object_matches.append(parsed_acl.service_object)
 					break
 
-	return ACL_matches
+	return (ACL_matches, service_object_matches)
 
 def union_list_of_lists(in_list):
 	# some black magic to condense and deduplicate a list of lists down to one list.
@@ -339,7 +337,7 @@ if dest:
 
 # get all object groups
 if debug: print('finding object groups')
-object_groups = config.find_objects(RE_OBJECT_GROUP)
+object_groups = config.find_objects(RE_OBJECT_GROUP_NETWORK)
 
 # match ips, sources, and destinations against object groups
 # TODO: this can be made more efficient when parsing multiple ip addresses that were passed in through one parameter
@@ -369,11 +367,11 @@ ACL = config.find_objects("^access-list ")
 
 # match against access-list items
 if subnet:
-	ACL_matches = match_access_lists(ACL, acl_name, subnet, "both", matched_objects, matched_groups)
+	ACL_matches, service_object_matches = match_access_lists(ACL, acl_name, subnet, "both", matched_objects, matched_groups)
 if source:
-	source_ACL_matches = match_access_lists(ACL, acl_name, source, "source", source_matched_objects, source_matched_groups)
+	source_ACL_matches, source_service_object_matches = match_access_lists(ACL, acl_name, source, "source", source_matched_objects, source_matched_groups)
 if dest:
-	dest_ACL_matches = match_access_lists(ACL, acl_name, dest, "dest", dest_matched_objects, dest_matched_groups)
+	dest_ACL_matches, dest_service_object_matches = match_access_lists(ACL, acl_name, dest, "dest", dest_matched_objects, dest_matched_groups)
 
 
 # merge source and dest results if we are checking for both, otherwise pick one
