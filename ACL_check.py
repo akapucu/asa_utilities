@@ -16,6 +16,7 @@ import argparse
 
 # regular expressions used throughout
 RE_OBJECT_NETWORK = re.compile('^object network (\S+)$')
+RE_OBJECT_SERVICE = re.compile('^object service (\S+)$')
 RE_OBJECT_GROUP_NETWORK = re.compile('^object-group network (\S+)$')
 RE_OBJECT_GROUP_SERVICE = re.compile('^object-group service (\S+)( \S+)?$')
 RE_HOST = re.compile('^ host\s(\S+)$')
@@ -219,7 +220,7 @@ def match_network_object_groups(subnet, object_groups, matched_objects):
 """
 
 
-def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects, matched_groups):
+def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects, matched_groups, service_objects):
 	# takes in a list of ACL lines and matches them against the other provided arguments.
 	# returns tuple of a list of matching lines and a list of service objects/groups that were in the matched ACLs.
 	# ips_to_match must be a list of IPv4Obj
@@ -300,7 +301,10 @@ def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects
 				if found:
 					ACL_matches.append(line)
 					if parsed_acl.protocol == "defined by object" or parsed_acl.protocol == "defined by object-group":
-						service_object_matches.append(parsed_acl.service_object)
+						for service_object in service_objects:
+							if parsed_acl.service_object in service_object.text:
+								service_object_matches.append(parsed_acl.service_object)
+								break
 					break
 
 	return (ACL_matches, service_object_matches)
@@ -365,13 +369,18 @@ if debug: print("extracting access-list")
 ACL = config.find_objects("^access-list ")
 
 
+# get service object items
+if debug: print("extracting service objects")
+service_objects = config.find_objects(RE_OBJECT_SERVICE) + config.find_objects(RE_OBJECT_GROUP_SERVICE)
+
+
 # match against access-list items
 if subnet:
-	ACL_matches, service_object_matches = match_access_lists(ACL, acl_name, subnet, "both", matched_objects, matched_groups)
+	ACL_matches, service_object_matches = match_access_lists(ACL, acl_name, subnet, "both", matched_objects, matched_groups, service_objects)
 if source:
-	source_ACL_matches, source_service_object_matches = match_access_lists(ACL, acl_name, source, "source", source_matched_objects, source_matched_groups)
+	source_ACL_matches, source_service_object_matches = match_access_lists(ACL, acl_name, source, "source", source_matched_objects, source_matched_groups, service_objects)
 if dest:
-	dest_ACL_matches, dest_service_object_matches = match_access_lists(ACL, acl_name, dest, "dest", dest_matched_objects, dest_matched_groups)
+	dest_ACL_matches, dest_service_object_matches = match_access_lists(ACL, acl_name, dest, "dest", dest_matched_objects, dest_matched_groups, service_objects)
 
 
 # merge source and dest results if we are checking for both, otherwise pick one
@@ -380,14 +389,17 @@ if source and dest:
 	ACL_matches = [line for line in source_ACL_matches if line in dest_ACL_matches]
 	matched_objects = source_matched_objects.union(dest_matched_objects)
 	matched_groups = source_matched_groups.union(dest_matched_groups)
+	service_object_matches = source_service_object_matches + dest_service_object_matches
 elif source:
 	ACL_matches = source_ACL_matches
 	matched_objects = source_matched_objects
 	matched_groups = source_matched_groups
+	service_object_matches = source_service_object_matches
 elif dest:
 	ACL_matches = dest_ACL_matches
 	matched_objects = dest_matched_objects
 	matched_groups = dest_matched_groups
+	service_object_matches = dest_service_object_matches
 
 
 
@@ -400,6 +412,12 @@ for obj in matched_objects:
 
 print("\nMatched object groups")
 for obj in matched_groups:
+	print(obj.text)
+	for child in obj.children:
+		print(child.text)
+
+print("\nMatched service objects")
+for obj in service_object_matches:
 	print(obj.text)
 	for child in obj.children:
 		print(child.text)
