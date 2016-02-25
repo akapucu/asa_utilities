@@ -303,7 +303,7 @@ def match_access_lists(ACL, acl_name, ips_to_match, src_or_dest, matched_objects
 					if parsed_acl.protocol == "defined by object" or parsed_acl.protocol == "defined by object-group":
 						for service_object in service_objects:
 							if parsed_acl.service_object in service_object.text:
-								service_object_matches.append(parsed_acl.service_object)
+								service_object_matches.append(service_object)
 								break
 					break
 
