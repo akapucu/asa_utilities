@@ -34,6 +34,9 @@ if args.debug:
 	verbose = True
 
 
+# unban?
+unban = args.unban
+
 # read in from a config if available
 config = ConfigParser()
 if args.config_file:
