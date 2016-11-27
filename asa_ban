@@ -85,10 +85,20 @@ else:
 if "password" in config[stanza]:
 	asa_password = config[stanza]["password"]
 else:
-	asa_password = getpass()
-	
+	asa_password = getpass("Password: ")
+
+if "enable_password" in config[stanza]:
+	enable_password = config[stanza]["enable_password"]
+else:
+	enable_password = getpass("Enable Password: ")
+
 use_ssh_key = config[stanza].getboolean("use_ssh_key")
-ssh_known_hosts = config[stanza]["ssh_known_hosts"]
+
+if "ssh_known_hosts" in config[stanza]:
+	ssh_known_hosts = config[stanza]["ssh_known_hosts"]
+	ssh_known_hosts = os.path.expanduser(ssh_known_hosts)
+else:
+	ssh_known_hosts = os.path.expanduser("~/.ssh/known_hosts")
 
 # get verbosity levels from config file
 debug = config[stanza].getboolean("debug")
@@ -103,20 +113,10 @@ if verbose:
 	print("input_file %s" %(args.input_file))
 
 
-#asa_password = getpass()
-#asa_timeout = 15
 asaprompt = ".*# "
-#ssh_known_hosts = "~/.ssh/known_hosts"
-#debug=False
 
 
 
-# additional initialization
-ssh_known_hosts = os.path.expanduser(ssh_known_hosts)
-
-
-
-enable_password = asa_password
 if debug:
 	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
 
