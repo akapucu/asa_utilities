@@ -15,7 +15,8 @@ from configparser import ConfigParser
 # get arguments
 parser = argparse.ArgumentParser(
 	description="ban script")
-parser.add_argument("input_file", help="file to use for ban action")
+parser.add_argument("IP address", dest="ip_address",
+	help="IP address to ban. If none is specified, will collect an address from stdin.", default=None)
 parser.add_argument("-s", "--stanza", help="stanza to use from the config file", dest="stanza")
 parser.add_argument('-c', help="config file", dest="config_file")
 parser.add_argument('-v', help="verbose", dest="verbose", action="store_true")
@@ -109,7 +110,6 @@ if verbose:
 	print("asa_username %s" %(asa_username))
 	print("asa_port %s" %(asa_port))
 	print("asa_timeout %s" %(asa_timeout))
-	print("input_file %s" %(args.input_file))
 
 
 # extract blacklist name
@@ -126,10 +126,10 @@ if debug:
 	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
 
 # figure out what we're banning
-try:
-	ip = sys.argv[1]
+if args.ip_address:
+	ip = args.ip_address
 except:
-	ip = input("what IP would you like to ban? ")
+	ip = input("What IP would you like to ban? ")
 
 # create child process
 client=paramiko.SSHClient()
