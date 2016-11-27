@@ -128,7 +128,7 @@ if debug:
 # figure out what we're banning
 if args.ip_address:
 	ip = args.ip_address
-except:
+else:
 	ip = input("What IP would you like to ban? ")
 
 # create child process
