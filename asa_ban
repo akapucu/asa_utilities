@@ -82,6 +82,11 @@ if "username" in config[stanza]:
 else:
 	asa_username = input("username (enter for REDACTED): ")
 
+if "use_ssh_key" in config[stanza]:
+	use_ssh_key = config[stanza].getboolean("use_ssh_key")
+else:
+	use_ssh_key = False
+
 if "password" in config[stanza]:
 	asa_password = config[stanza]["password"]
 else:
@@ -92,7 +97,6 @@ if "enable_password" in config[stanza]:
 else:
 	enable_password = getpass("Enable Password: ")
 
-use_ssh_key = config[stanza].getboolean("use_ssh_key")
 
 if "ssh_known_hosts" in config[stanza]:
 	ssh_known_hosts = config[stanza]["ssh_known_hosts"]
@@ -134,8 +138,8 @@ else:
 client=paramiko.SSHClient()
 #child = pexpect.spawn('ssh -M -p %d %s@%s' %(port, username, hostname))
 client.load_host_keys(ssh_known_hosts)
-client.connect(asa_address, port=asa_port, username=asa_username, password=asa_password, timeout=asa_timeout, look_for_keys=False)
-interact=SSHClientInteraction(client, timeout=asa_timeout, display=debug)
+client.connect(asa_address, port=asa_port, username=asa_username, password=asa_password, timeout=asa_timeout, look_for_keys=use_ssh_key)
+interact=SSHClientInteraction(client, timeout=asa_timeout, display=verbose)
 
 #log in and set some environment stuff
 interact.expect(".*>.*")
