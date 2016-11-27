@@ -15,7 +15,8 @@ from configparser import ConfigParser
 # get arguments
 parser = argparse.ArgumentParser(
 	description="ban script")
-parser.add_argument("ip_address", help="IP address to ban. If none is specified, will collect an address from stdin.", default=None)
+parser.add_argument("ip_address", help="IP address to ban. If none is specified, will collect an address from stdin.", nargs="?", default=None)
+parser.add_argument("-u", help="Unban an ip address instead of banning one", dest="unban", action="store_true")
 parser.add_argument("-s", "--stanza", help="stanza to use from the config file", dest="stanza")
 parser.add_argument('-c', help="config file", dest="config_file")
 parser.add_argument('-v', help="verbose", dest="verbose", action="store_true")
@@ -87,10 +88,12 @@ if "use_ssh_key" in config[stanza]:
 else:
 	use_ssh_key = False
 
-if "password" in config[stanza]:
-	asa_password = config[stanza]["password"]
-else:
-	asa_password = getpass("Password: ")
+# special handling for when we're using an SSH key for authentication
+if use_ssh_key:
+	if "password" in config[stanza]:
+		asa_password = config[stanza]["password"]
+	else:
+		asa_password = getpass("Password: ")
 
 if "enable_password" in config[stanza]:
 	enable_password = config[stanza]["enable_password"]
@@ -117,7 +120,7 @@ if verbose:
 
 # extract blacklist name
 if not "blacklist" in config[stanza]:
-	parser.error("no blacklist section found in config stanza %s" %(stanza))
+	parser.error("no blacklist variable specified in config stanza %s" %(stanza))
 else:
 	blacklist = config[stanza]["blacklist"]
 
@@ -154,10 +157,14 @@ interact.expect(asaprompt)
 interact.send("terminal width 200")
 interact.expect(asaprompt)
 
-# ban
-interact.send("object-group network blacklisted_IPs")
+# ban or unban
+interact.send("object-group network %s" %(blacklist))
 interact.expect(asaprompt)
-interact.send("network-object host " + ip)
+if unban:
+	interact.send("no network-object host " + ip)
+else:
+	interact.send("network-object host " + ip)
+
 interact.expect(asaprompt)
 
 # close connection
