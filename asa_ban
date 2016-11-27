@@ -1,18 +1,22 @@
 #!/usr/bin/python3
 
 import os, sys
+# module for reading password in safely
 from getpass import getpass
+# modules for SSH interaction
 import paramiko
 from paramikoe import SSHClientInteraction
+# command line argument parsing
 import argparse
+# configuration file parser
 from configparser import ConfigParser
 
 
-# what are we doing
+# get arguments
 parser = argparse.ArgumentParser(
 	description="ban script")
 parser.add_argument("input_file", help="file to use for ban action")
-parser.add_argument("-s", "--server", help="server name to connect to from the config file", dest="server")
+parser.add_argument("-s", "--stanza", help="stanza to use from the config file", dest="stanza")
 parser.add_argument('-c', help="config file", dest="config_file")
 parser.add_argument('-v', help="verbose", dest="verbose", action="store_true")
 parser.add_argument('--debug', help="debug", dest="debug", action="store_true")
@@ -27,6 +31,7 @@ if args.verbose:
 if args.debug:
 	debug = True
 	verbose = True
+
 
 # read in from a config if available
 config = ConfigParser()
@@ -46,40 +51,40 @@ else: # no file given to us, try to read from a default file
 		sys.exit()
 
 
-# determine which server we're going to use from the config file
-if args.server:
-	if not args.server in config:
-		parser.error("specified server \"%s\" was not found in config file" %(args.server))
+# determine which stanza we're going to use from the config file
+if args.stanza:
+	if not args.stanza in config:
+		parser.error("specified stanza \"%s\" was not found in config file" %(args.stanza))
 		sys.exit()
 	else:
-		server = args.server
+		stanza = args.stanza
 else: # if none was given to us, fall back to a default
-	if not 'defaultserver' in config['DEFAULT']:
-		parser.error("no server specified in DEFAULT section of config file")
+	if not 'default' in config['DEFAULT']:
+		parser.error("no default stanza specified in DEFAULT section of config file")
 		sys.exit()
 	else:
-		server = config['DEFAULT']['defaultserver']
+		stanza = config['DEFAULT']['default']
 
-	if not server in config:
-		parser.error("invalid configuration section %s" %(server))
+	if not stanza in config:
+		parser.error("invalid configuration section %s" %(stanza))
 		sys.exit()
 
 
 # extract required values from config file
-asa_address = config[server]['address']
-asa_username = config[server]['username']
-asa_password = config[server]['password']
-asa_port = int(config[server]['port'])
-asa_timeout = int(config[server]['timeout'])
+asa_address = config[stanza]['address']
+asa_username = config[stanza]['username']
+asa_password = config[stanza]['password']
+asa_port = int(config[stanza]['port'])
+asa_timeout = int(config[stanza]['timeout'])
 
 # extract optional values from config file
-use_ssh_key = config[server]["use_ssh_key"]
-ssh_known_hosts = config[server]["ssh_known_hosts"]
+use_ssh_key = config[stanza]["use_ssh_key"]
+ssh_known_hosts = config[stanza]["ssh_known_hosts"]
 
 # special handling for debug/verbose from config file
-if config[server]["debug"] == "true":
+if config[stanza]["debug"] == "True":
 	debug = True
-if config[server]["verbose"] == "True":
+if config[stanza]["verbose"] == "True":
 	verbose = True
 
 
