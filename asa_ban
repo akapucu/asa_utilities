@@ -72,12 +72,12 @@ else: # if none was given to us, fall back to a default
 
 # extract required values from config file
 asa_address = config[stanza]['address']
-asa_username = config[stanza]['username']
-asa_password = config[stanza]['password']
 asa_port = int(config[stanza]['port'])
 asa_timeout = int(config[stanza]['timeout'])
 
 # extract optional values from config file
+asa_username = config[stanza]['username']
+asa_password = config[stanza]['password']
 use_ssh_key = config[stanza].getboolean("use_ssh_key")
 ssh_known_hosts = config[stanza]["ssh_known_hosts"]
 
@@ -104,8 +104,12 @@ asaprompt = ".*# "
 
 # additional initialization
 ssh_known_hosts = os.path.expanduser(ssh_known_hosts)
-#if not asa_username:
-#	asa_username = 'REDACTED'
+if "password" in config[stanza]:
+	asa_password = config[stanza]["password"]
+else:
+	asa_password = getpass()
+
+
 enable_password = asa_password
 if debug:
 	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
