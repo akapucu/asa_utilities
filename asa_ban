@@ -75,9 +75,18 @@ asa_address = config[stanza]['address']
 asa_port = int(config[stanza]['port'])
 asa_timeout = int(config[stanza]['timeout'])
 
+
 # extract optional values from config file
-asa_username = config[stanza]['username']
-asa_password = config[stanza]['password']
+if "username" in config[stanza]:
+	asa_username = config[stanza]["username"]
+else:
+	asa_username = input("username (enter for REDACTED): ")
+
+if "password" in config[stanza]:
+	asa_password = config[stanza]["password"]
+else:
+	asa_password = getpass()
+	
 use_ssh_key = config[stanza].getboolean("use_ssh_key")
 ssh_known_hosts = config[stanza]["ssh_known_hosts"]
 
@@ -104,10 +113,7 @@ asaprompt = ".*# "
 
 # additional initialization
 ssh_known_hosts = os.path.expanduser(ssh_known_hosts)
-if "password" in config[stanza]:
-	asa_password = config[stanza]["password"]
-else:
-	asa_password = getpass()
+
 
 
 enable_password = asa_password
