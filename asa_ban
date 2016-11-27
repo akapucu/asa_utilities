@@ -104,7 +104,6 @@ else:
 debug = config[stanza].getboolean("debug")
 verbose = config[stanza].getboolean("verbose")
 
-
 if verbose:
 	print("asa_address %s" %(asa_address))
 	print("asa_username %s" %(asa_username))
@@ -112,6 +111,12 @@ if verbose:
 	print("asa_timeout %s" %(asa_timeout))
 	print("input_file %s" %(args.input_file))
 
+
+# extract blacklist name
+if not "blacklist" in config[stanza]:
+	parser.error("no blacklist section found in config stanza %s" %(stanza))
+else:
+	blacklist = config[stanza]["blacklist"]
 
 asaprompt = ".*# "
 
