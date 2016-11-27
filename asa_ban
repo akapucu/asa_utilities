@@ -15,8 +15,7 @@ from configparser import ConfigParser
 # get arguments
 parser = argparse.ArgumentParser(
 	description="ban script")
-parser.add_argument("IP address", dest="ip_address",
-	help="IP address to ban. If none is specified, will collect an address from stdin.", default=None)
+parser.add_argument("ip_address", help="IP address to ban. If none is specified, will collect an address from stdin.", default=None)
 parser.add_argument("-s", "--stanza", help="stanza to use from the config file", dest="stanza")
 parser.add_argument('-c', help="config file", dest="config_file")
 parser.add_argument('-v', help="verbose", dest="verbose", action="store_true")
