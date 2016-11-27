@@ -78,14 +78,12 @@ asa_port = int(config[stanza]['port'])
 asa_timeout = int(config[stanza]['timeout'])
 
 # extract optional values from config file
-use_ssh_key = config[stanza]["use_ssh_key"]
+use_ssh_key = config[stanza].getboolean("use_ssh_key")
 ssh_known_hosts = config[stanza]["ssh_known_hosts"]
 
-# special handling for debug/verbose from config file
-if config[stanza]["debug"] == "True":
-	debug = True
-if config[stanza]["verbose"] == "True":
-	verbose = True
+# get verbosity levels from config file
+debug = config[stanza].getboolean("debug")
+verbose = config[stanza].getboolean("verbose")
 
 
 if verbose:
