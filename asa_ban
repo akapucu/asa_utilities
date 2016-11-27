@@ -4,22 +4,105 @@ import os, sys
 from getpass import getpass
 import paramiko
 from paramikoe import SSHClientInteraction
+import argparse
+from configparser import ConfigParser
 
-# initialize variables
-port = 22
-asa_address = 'REDACTED'
-asa_username = input("username (enter for REDACTED): ")
-asa_password = getpass()
-asa_timeout = 15
-asa_port = 22
+
+# what are we doing
+parser = argparse.ArgumentParser(
+	description="ban script")
+parser.add_argument("input_file", help="file to use for ban action")
+parser.add_argument("-s", "--server", help="server name to connect to from the config file", dest="server")
+parser.add_argument('-c', help="config file", dest="config_file")
+parser.add_argument('-v', help="verbose", dest="verbose", action="store_true")
+parser.add_argument('--debug', help="debug", dest="debug", action="store_true")
+args = parser.parse_args()
+
+
+# evaluate verbosity levels
+verbose = False
+debug = False
+if args.verbose:
+	verbose = True
+if args.debug:
+	debug = True
+	verbose = True
+
+# read in from a config if available
+config = ConfigParser()
+if args.config_file:
+	try:
+		config.read(args.config_file)
+		if debug: print("using config file from command line")
+	except:
+		parser.error("invalid config file %s" %(args.config_file))
+		sys.exit()
+else: # no file given to us, try to read from a default file
+	try:
+		config.read('autoban.conf')
+		if debug: print("falling back to 'autoban.conf'")
+	except:
+		parser.error("could not read autoban.conf")
+		sys.exit()
+
+
+# determine which server we're going to use from the config file
+if args.server:
+	if not args.server in config:
+		parser.error("specified server \"%s\" was not found in config file" %(args.server))
+		sys.exit()
+	else:
+		server = args.server
+else: # if none was given to us, fall back to a default
+	if not 'defaultserver' in config['DEFAULT']:
+		parser.error("no server specified in DEFAULT section of config file")
+		sys.exit()
+	else:
+		server = config['DEFAULT']['defaultserver']
+
+	if not server in config:
+		parser.error("invalid configuration section %s" %(server))
+		sys.exit()
+
+
+# extract required values from config file
+asa_address = config[server]['address']
+asa_username = config[server]['username']
+asa_password = config[server]['password']
+asa_port = int(config[server]['port'])
+asa_timeout = int(config[server]['timeout'])
+
+# extract optional values from config file
+use_ssh_key = config[server]["use_ssh_key"]
+ssh_known_hosts = config[server]["ssh_known_hosts"]
+
+# special handling for debug/verbose from config file
+if config[server]["debug"] == "true":
+	debug = True
+if config[server]["verbose"] == "True":
+	verbose = True
+
+
+if verbose:
+	print("asa_address %s" %(asa_address))
+	print("asa_username %s" %(asa_username))
+	print("asa_port %s" %(asa_port))
+	print("asa_timeout %s" %(asa_timeout))
+	print("input_file %s" %(args.input_file))
+
+
+#asa_password = getpass()
+#asa_timeout = 15
 asaprompt = ".*# "
-ssh_known_hosts = "~/.ssh/known_hosts"
-debug=False
+#ssh_known_hosts = "~/.ssh/known_hosts"
+#debug=False
+
+
 
 # additional initialization
 ssh_known_hosts = os.path.expanduser(ssh_known_hosts)
-if not asa_username:
-	asa_username = 'REDACTED'
+#if not asa_username:
+#	asa_username = 'REDACTED'
 enable_password = asa_password
 if debug:
 	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
