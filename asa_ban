@@ -114,7 +114,7 @@ else:
 debug = config[stanza].getboolean("debug")
 verbose = config[stanza].getboolean("verbose")
 
-if verbose:
+if debug:
 	print("asa_address %s" %(asa_address))
 	print("asa_username %s" %(asa_username))
 	print("asa_port %s" %(asa_port))
@@ -126,8 +126,6 @@ if not "blacklist" in config[stanza]:
 	parser.error("no blacklist variable specified in config stanza %s" %(stanza))
 else:
 	blacklist = config[stanza]["blacklist"]
-
-asaprompt = ".*# "
 
 
 
@@ -142,10 +140,15 @@ else:
 
 # create child process
 client=paramiko.SSHClient()
-#child = pexpect.spawn('ssh -M -p %d %s@%s' %(port, username, hostname))
+# load ssh known hosts
 client.load_host_keys(ssh_known_hosts)
+# connect
 client.connect(asa_address, port=asa_port, username=asa_username, password=asa_password, timeout=asa_timeout, look_for_keys=use_ssh_key)
+# set up the paramiko_expect interaction object
 interact=SSHClientInteraction(client, timeout=asa_timeout, display=verbose)
+
+# prompt that we should expect upon successful completion of a command
+asaprompt = ".*# "
 
 #log in and set some environment stuff
 interact.expect(".*>.*")
@@ -160,7 +163,7 @@ interact.expect(asaprompt)
 interact.send("terminal width 200")
 interact.expect(asaprompt)
 
-# ban or unban
+# ban or unban accordingly
 interact.send("object-group network %s" %(blacklist))
 interact.expect(asaprompt)
 if unban:
