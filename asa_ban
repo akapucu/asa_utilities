@@ -136,7 +136,10 @@ if debug:
 if args.ip_address:
 	ip = args.ip_address
 else:
-	ip = input("What IP would you like to ban? ")
+    if unban:
+	ip = input("What IP would you like to unban? ")
+    else:
+        ip = input("What IP would you like to ban? ")
 
 # create child process
 client=paramiko.SSHClient()
