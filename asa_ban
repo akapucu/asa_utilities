@@ -137,7 +137,7 @@ if args.ip_address:
 	ip = args.ip_address
 else:
     if unban:
-	ip = input("What IP would you like to unban? ")
+        ip = input("What IP would you like to unban? ")
     else:
         ip = input("What IP would you like to ban? ")
 
