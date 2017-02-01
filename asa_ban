@@ -5,11 +5,14 @@ import os, sys
 from getpass import getpass
 # modules for SSH interaction
 import paramiko
-from paramikoe import SSHClientInteraction
+#from paramikoe import SSHClientInteraction
+from paramiko_expect import SSHClientInteraction
 # command line argument parsing
 import argparse
 # configuration file parser
 from configparser import ConfigParser
+from time import sleep
+import time
 
 
 # get arguments
@@ -17,9 +20,13 @@ parser = argparse.ArgumentParser(
 	description="ban script")
 parser.add_argument("ip_address", help="IP address to ban. If none is specified, will collect an address from stdin.", nargs="?", default=None)
 parser.add_argument("-u", help="Unban an ip address instead of banning one", dest="unban", action="store_true")
-parser.add_argument("-s", "--stanza", help="stanza to use from the config file", dest="stanza")
+parser.add_argument("-s", "--", help="stanza to use from the config file", dest="stanza")
 parser.add_argument('-c', help="config file", dest="config_file")
 parser.add_argument('-v', help="verbose", dest="verbose", action="store_true")
+parser.add_argument("-d", help="Drop the object drop - Remove everything", dest="drop", action="store_true")
+
+parser.add_argument('-f', help="file for list of ip addresses", dest="listofip", action="store_true")
+
 parser.add_argument('--debug', help="debug", dest="debug", action="store_true")
 args = parser.parse_args()
 
@@ -27,6 +34,7 @@ args = parser.parse_args()
 # evaluate verbosity levels
 verbose = False
 debug = False
+
 if args.verbose:
 	verbose = True
 if args.debug:
@@ -36,6 +44,9 @@ if args.debug:
 
 # unban?
 unban = args.unban
+
+#drop
+drop = args.drop
 
 # read in from a config if available
 config = ConfigParser()
@@ -53,6 +64,22 @@ else: # no file given to us, try to read from a default file
 	except:
 		parser.error("could not read autoban.conf")
 		sys.exit()
+
+
+
+
+listofip = args.listofip
+list_of_ipaddresses = []
+
+if args.listofip:
+	print ("-f kullanildi...")
+	with open(sys.argv[2], 'r') as f:
+		list_of_ipaddresses = [line.strip() for line in f]
+		#list_of_ipaddresses.remove('');
+	#print(list_of_ipaddresses)
+
+#print ("list_of_ipaddresses[1]: ", list_of_ipaddresses[1])
+
 
 
 # determine which stanza we're going to use from the config file
@@ -127,19 +154,27 @@ if not "blacklist" in config[stanza]:
 else:
 	blacklist = config[stanza]["blacklist"]
 
-
-
 if debug:
 	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
 
 # figure out what we're banning
-if args.ip_address:
+
+
+
+if args.listofip:
+	#print(list_of_ipaddresses)
+	print ("Processing list")
+
+
+
+elif args.ip_address:
 	ip = args.ip_address
 else:
-    if unban:
-        ip = input("What IP would you like to unban? ")
-    else:
-        ip = input("What IP would you like to ban? ")
+	if unban:
+	    ip = input("What IP would you like to unban? ")
+	else:
+	    ip = input("What IP would you like to ban? ")
+
 
 # create child process
 client=paramiko.SSHClient()
@@ -163,18 +198,38 @@ interact.send("configure terminal")
 interact.expect(asaprompt)
 interact.send("terminal pager 0")
 interact.expect(asaprompt)
-interact.send("terminal width 200")
+interact.send("terminal width 300")
 interact.expect(asaprompt)
 
 # ban or unban accordingly
-interact.send("object-group network %s" %(blacklist))
-interact.expect(asaprompt)
-if unban:
-	interact.send("no network-object host " + ip)
+if drop:
+	interact.send("no object-group network %s" %(blacklist))
 else:
-	interact.send("network-object host " + ip)
+	interact.send("object-group network %s" %(blacklist))
+	interact.expect(asaprompt)
+	if args.listofip:
+		for i, val in enumerate(list_of_ipaddresses):
+			if unban:
+				interact.send("no network-object host " + val)
+				#sleep(0.05)
+				#time.sleep(0.100)
+				interact.expect(asaprompt)
+			else:
+				interact.send("network-object host " + val)
+				#time.sleep(0.100)
+				interact.expect(asaprompt)
+		#print ("done with if")
+		interact.send("object-group network DynamicBLockList")
+		interact.send("group-object %s" %(blacklist))
+	elif unban:
+		interact.send("no network-object host " + ip)
+	else:
+		interact.send("network-object host " + ip)
+		#interact.send("object-group network DynamicBLockList")
+		#interact.send("group-object %s" %(blacklist))
 
 interact.expect(asaprompt)
-
+#object-group network DynamicBLockList
+#group-object blacklisted_IPs
 # close connection
 client.close()
