@@ -24,7 +24,9 @@ parser.add_argument("-s", "--", help="stanza to use from the config file", dest=
 parser.add_argument('-c', help="config file", dest="config_file")
 parser.add_argument('-v', help="verbose", dest="verbose", action="store_true")
 parser.add_argument("-d", help="Drop the object drop - Remove everything", dest="drop", action="store_true")
+#parser.add_argument('-f', help="file for list of ip addresses", dest="listofip", action="store_true")
 parser.add_argument('-f', help="file for list of ip addresses", dest="listofip")
+parser.add_argument('-o', help="Network Object for ip addresses", dest="netobject")
 parser.add_argument('--debug', help="debug", dest="debug", action="store_true")
 args = parser.parse_args()
 
@@ -38,6 +40,10 @@ if args.verbose:
 if args.debug:
 	debug = True
 	verbose = True
+
+
+# custom network object?	
+netobject = args.netobject
 
 # unban?
 unban = args.unban
@@ -62,12 +68,11 @@ else: # no file given to us, try to read from a default file
 		parser.error("could not read autoban.conf")
 		sys.exit()
 
-#getting list of ip and creating list 		
+
 listofip = args.listofip
 list_of_ipaddresses = []
 
 if listofip:
-	#with open(sys.argv[2], 'r') as f:
 	with open(args.listofip, 'r') as f:
 		list_of_ipaddresses = [line.strip() for line in f]
 
@@ -138,17 +143,21 @@ if debug:
 	print("asa_timeout %s" %(asa_timeout))
 
 
-# extract blacklist name
-if not "blacklist" in config[stanza]:
-	parser.error("no blacklist variable specified in config stanza %s" %(stanza))
+# Check if command line argument used otherwise get group object from config file
+if netobject:
+	blacklist = args.netobject
 else:
-	blacklist = config[stanza]["blacklist"]
+	if not "blacklist" in config[stanza]:
+		parser.error("no blacklist variable specified in config stanza %s" %(stanza))
+	else:
+		blacklist = config[stanza]["blacklist"]
 
-if debug:
-	paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
+	if debug:
+		paramiko.common.logging.basicConfig(level=paramiko.common.DEBUG)
 
 # figure out what we're banning
 if listofip:
+	#print(list_of_ipaddresses)
 	if drop:
 		print ("Dropping network-object %s" %(blacklist))
 	else:
@@ -190,7 +199,6 @@ interact.send("terminal width 300")
 interact.expect(asaprompt)
 
 # ban or unban accordingly
-# ASA does not like when empty network object is exist so i add dumy record named "placeholder"
 if drop:
 	interact.send("no object-group network %s" %(blacklist))
 	interact.send("object-group network %s" %(blacklist))
@@ -213,6 +221,7 @@ else:
 		interact.send("no network-object host " + ip)
 	else:
 		interact.send("network-object host " + ip)
-interact.expect(asaprompt)
 
+interact.expect(asaprompt)
+# close connection
 client.close()
