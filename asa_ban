@@ -11,8 +11,7 @@ from paramiko_expect import SSHClientInteraction
 import argparse
 # configuration file parser
 from configparser import ConfigParser
-from time import sleep
-import time
+
 
 
 # get arguments
